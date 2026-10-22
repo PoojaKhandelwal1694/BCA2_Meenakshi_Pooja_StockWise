@@ -1,0 +1,818 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockWise | Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+
+            <div class="brand">
+                <span class="brand-icon">S</span>
+                <span>StockWise</span>
+            </div>
+
+            <p class="menu-heading">MAIN MENU</p>
+
+            
+          
+<nav class="sidebar-menu">
+    <a href="#" id="dashboardNav" class="active" data-panel="dashboard">Dashboard</a>
+    <a href="#" id="productsNav" data-panel="products">Products</a>
+    <a href="#" id="categoriesNav" data-panel="categories">Categories</a>
+    <a href="#" data-panel="lowstock">Low Stock</a>
+    <a href="#" data-panel="suppliers">Suppliers</a>
+    <a href="#" data-panel="reports">Reports</a>
+</nav>
+
+
+
+            <div class="sidebar-bottom">
+                <a href="#">Settings</a>
+                <a href="login.html">Log Out</a>
+            </div>
+
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Top Navigation -->
+            <header class="topbar">
+
+                <div>
+                    <p class="welcome-text">WELCOME BACK</p>
+                    <h1>Inventory Overview</h1>
+                </div>
+
+                <div class="topbar-right">
+                    <input type="search" placeholder="Search inventory...">
+                    
+                <div class="profile">
+                    <span class="profile-avatar" id="profileAvatar">U</span>
+                    <div>
+                        <strong id="profileName">Loading...</strong>
+                        <p id="profileRole">User</p>
+                    </div>
+                </div>
+
+                </div>
+
+            </header>
+
+            <!-- Dashboard Introduction -->
+            <section class="page-intro">
+                <div>
+                    <h2>Your inventory at a glance</h2>
+                    <p>Track your products and keep your stock organized.</p>
+                </div>
+
+                <button type="button" class="add-button" id="addProductBtn">
+                        + Add Product
+                </button>
+            </section>
+
+            <!-- Summary Cards -->
+            <section class="stats-grid">
+
+                <article class="stat-card">
+                    <p>Total Products</p>
+                    <h2>0</h2>
+                    <span>Products in inventory</span>
+                </article>
+
+                <article class="stat-card">
+                    <p>Total Stock Units</p>
+                    <h2>0</h2>
+                    <span>Units available</span>
+                </article>
+
+                <article class="stat-card">
+                    <p>Low Stock Items</p>
+                    <h2>0</h2>
+                    <span>Need attention</span>
+                </article>
+
+                <article class="stat-card">
+                    <p>Inventory Value</p>
+                    <h2>₹0</h2>
+                    <span>Estimated stock value</span>
+                </article>
+
+            </section>
+
+            <!-- Recent Products -->
+            <section class="products-section">
+
+                <div class="section-header">
+                    <div>
+                        <h2>Recent Products</h2>
+                        <p>Overview of your inventory items</p>
+                    </div>
+
+                    <a href="#">View all</a>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>SKU</th>
+                                <th>Category ID</th>
+                                <th>Cost Price</th>
+                                <th>Selling Price</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="productTableBody">
+                            <!-- Products will load here -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </section>
+
+            
+
+<!-- Categories Panel -->
+<section id="categoriesPanel" class="products-section" style="display: none;">
+
+    <div class="section-header">
+        <div>
+            <h2>Categories</h2>
+            <p>Manage your inventory categories</p>
+        </div>
+
+        <button type="button" class="add-button" id="addCategoryBtn">
+            + Add Category
+        </button>
+    </div>
+
+    <p id="categoryMessage" role="status"></p>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category ID</th>
+                    <th>Category Name</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="categoryTableBody">
+                <tr>
+                    <td colspan="4">Loading categories...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Category Modal -->
+<div id="categoryModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h2 id="categoryModalTitle">Add New Category</h2>
+
+        <form id="categoryForm">
+            <label for="categoryName">Category Name</label>
+            <input type="text" id="categoryName" maxlength="100" required>
+
+            <label for="categoryDescription">Description</label>
+            <input type="text" id="categoryDescription" maxlength="255">
+
+            <p id="categoryFormMessage" role="status"></p>
+
+            <button type="submit" class="add-button">Save Category</button>
+            <button type="button" id="closeCategoryBtn">Cancel</button>
+        </form>
+    </div>
+</div>
+
+
+        </main>
+        <!-- Add Product Modal -->
+<div id="productModal" class="modal" style="display: none;">
+    <div class="modal-content">
+       <h2 id="productModalTitle">Add New Product</h2>
+
+        <form id="productForm">
+            <label for="productName">Product Name</label>
+            <input type="text" id="productName" required>
+
+            <label for="sku">SKU</label>
+            <input type="text" id="sku" required>
+
+            <label for="categoryId">Category ID</label>
+            <input type="number" id="categoryId" min="1" required>
+
+            <label for="costPrice">Cost Price (₹)</label>
+            <input type="number" id="costPrice" min="0" step="0.01" required>
+
+            <label for="sellingPrice">Selling Price (₹)</label>
+            <input type="number" id="sellingPrice" min="0" step="0.01" required>
+
+            <label for="quantity">Initial Quantity</label>
+            <input type="number" id="quantity" min="0" value="0" required>
+
+            <label for="reorderLevel">Low Stock Alert Level</label>
+            <input type="number" id="reorderLevel" min="0" value="10" required>
+
+            <div id="productMessage" role="status"></div>
+
+            <button type="submit" class="add-button">Save Product</button>
+            <button type="button" id="closeProductBtn">Cancel</button>
+        </form>
+    </div>
+</div>
+
+    </div>
+        
+<script>
+const API_URL = "http://localhost:8080/api/products";
+
+
+
+const AUTH_URL = "http://127.0.0.1:8080/api/auth";
+
+async function loadLoggedInUser() {
+    const nameElement = document.getElementById("profileName");
+    const avatarElement = document.getElementById("profileAvatar");
+    const roleElement = document.getElementById("profileRole");
+
+    try {
+        const response = await fetch(`${AUTH_URL}/me`, {
+            method: "GET",
+            credentials: "include"
+        });
+
+        console.log("Auth /me status:", response.status);
+
+        const user = await response.json();
+        console.log("Auth /me response:", user);
+
+        if (!response.ok) {
+            nameElement.textContent = "Session not verified";
+            avatarElement.textContent = "U";
+            roleElement.textContent = "Please check login session";
+            return;
+        }
+
+        if (!user.fullName) {
+            throw new Error("fullName missing from /api/auth/me response");
+        }
+
+        nameElement.textContent = user.fullName;
+        avatarElement.textContent =
+            user.fullName.trim().charAt(0).toUpperCase();
+        roleElement.textContent = "User";
+
+    } catch (error) {
+        console.error("Could not load logged-in user:", error);
+        nameElement.textContent = "User";
+        avatarElement.textContent = "U";
+        roleElement.textContent = "Unable to load profile";
+    }
+}
+
+loadLoggedInUser();
+
+
+
+const addProductBtn = document.getElementById("addProductBtn");
+const closeProductBtn = document.getElementById("closeProductBtn");
+const productModal = document.getElementById("productModal");
+const productForm = document.getElementById("productForm");
+const productMessage = document.getElementById("productMessage");
+const productTableBody = document.getElementById("productTableBody");
+const productModalTitle = document.getElementById("productModalTitle");
+
+let editingProductId = null;
+
+// Open form for adding a new product
+addProductBtn.addEventListener("click", () => {
+    editingProductId = null;
+    productForm.reset();
+    productMessage.textContent = "";
+    productModalTitle.textContent = "Add New Product";
+    productModal.style.display = "flex";
+});
+
+// Close modal
+closeProductBtn.addEventListener("click", () => {
+    productModal.style.display = "none";
+});
+
+productModal.addEventListener("click", (event) => {
+    if (event.target === productModal) {
+        productModal.style.display = "none";
+    }
+});
+
+// Load products from database
+async function loadProducts() {
+    productTableBody.innerHTML =
+        '<tr><td colspan="7">Loading products...</td></tr>';
+
+    try {
+        const response = await fetch(API_URL);
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const products = await response.json();
+        productTableBody.innerHTML = "";
+
+        if (products.length === 0) {
+            productTableBody.innerHTML =
+                '<tr><td colspan="7">No products found.</td></tr>';
+            return;
+        }
+
+        products.forEach(product => {
+            const row = document.createElement("tr");
+
+            const values = [
+                product.productId,
+                product.productName,
+                product.sku,
+                product.categoryId,
+                product.costPrice,
+                product.sellingPrice
+            ];
+
+            values.forEach(value => {
+                const cell = document.createElement("td");
+                cell.textContent = value ?? "";
+                row.appendChild(cell);
+            });
+
+            // Actions column
+            const actionsCell = document.createElement("td");
+
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.textContent = "Edit";
+            editButton.className = "add-button";
+
+            editButton.addEventListener("click", () => {
+                editProduct(product);
+            });
+
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.textContent = "Delete";
+            deleteButton.style.marginLeft = "8px";
+
+            deleteButton.addEventListener("click", () => {
+                deleteProduct(product.productId, product.productName);
+            });
+
+            actionsCell.appendChild(editButton);
+            actionsCell.appendChild(deleteButton);
+            row.appendChild(actionsCell);
+
+            productTableBody.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Error loading products:", error);
+        productTableBody.innerHTML =
+            '<tr><td colspan="7">Could not load products. Check Spring Boot and MySQL.</td></tr>';
+    }
+}
+
+// Edit: Fill the form with the selected product
+function editProduct(product) {
+    editingProductId = product.productId;
+
+    document.getElementById("productName").value =
+        product.productName ?? "";
+
+    document.getElementById("sku").value =
+        product.sku ?? "";
+
+    document.getElementById("categoryId").value =
+        product.categoryId ?? "";
+
+    document.getElementById("costPrice").value =
+        product.costPrice ?? "";
+
+    document.getElementById("sellingPrice").value =
+        product.sellingPrice ?? "";
+
+    productMessage.textContent = "";
+    productModalTitle.textContent = "Update Product";
+    productModal.style.display = "flex";
+}
+
+// Add or Update product
+productForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const product = {
+        productName: document.getElementById("productName").value.trim(),
+        sku: document.getElementById("sku").value.trim(),
+        categoryId: Number(document.getElementById("categoryId").value),
+        costPrice: Number(document.getElementById("costPrice").value),
+        sellingPrice: Number(document.getElementById("sellingPrice").value)
+    };
+
+    if (
+        !product.productName ||
+        !product.sku ||
+        !Number.isInteger(product.categoryId) ||
+        product.categoryId <= 0 ||
+        !Number.isFinite(product.costPrice) ||
+        !Number.isFinite(product.sellingPrice) ||
+        product.costPrice < 0 ||
+        product.sellingPrice < 0
+    ) {
+        productMessage.textContent = "Please enter valid product details.";
+        return;
+    }
+
+    const isEditing = editingProductId !== null;
+    const url = isEditing
+        ? `${API_URL}/${editingProductId}`
+        : API_URL;
+
+    productMessage.textContent = isEditing
+        ? "Updating product..."
+        : "Saving product...";
+
+    try {
+        const response = await fetch(url, {
+            method: isEditing ? "PUT" : "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(product)
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+            productMessage.textContent =
+                responseText || "Request failed. HTTP " + response.status;
+            return;
+        }
+
+        productMessage.textContent = isEditing
+            ? "Product updated successfully!"
+            : "Product added successfully!";
+
+        await loadProducts();
+
+        productForm.reset();
+        editingProductId = null;
+
+        setTimeout(() => {
+            productModal.style.display = "none";
+            productMessage.textContent = "";
+            productModalTitle.textContent = "Add New Product";
+        }, 700);
+
+    } catch (error) {
+        console.error("Save/update error:", error);
+        productMessage.textContent =
+            "Could not connect to Java. Check that Spring Boot is running.";
+    }
+});
+
+// Delete product
+async function deleteProduct(id, name) {
+    const confirmed = confirm(
+        `Are you sure you want to delete "${name}"?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: "DELETE"
+        });
+
+        const message = await response.text();
+
+        if (!response.ok) {
+            alert(message || "Could not delete product.");
+            return;
+        }
+
+        alert("Product deleted successfully!");
+        await loadProducts();
+
+    } catch (error) {
+        console.error("Delete error:", error);
+        alert("Could not connect to Java. Check that Spring Boot is running.");
+    }
+}
+
+// Load products when dashboard opens
+document.addEventListener("DOMContentLoaded", loadProducts);
+
+
+
+
+
+
+/* =========================
+   CATEGORIES MODULE
+========================= */
+
+const CATEGORY_API = "http://localhost:8080/api/categories";
+
+const categoriesNav = document.getElementById("categoriesNav");
+const dashboardNav = document.getElementById("dashboardNav");
+
+const categoriesPanel = document.getElementById("categoriesPanel");
+const productsSection = document.querySelector(".products-section");
+const pageIntro = document.querySelector(".page-intro");
+const statsGrid = document.querySelector(".stats-grid");
+
+// The first .products-section is the Recent Products section.
+// Select it specifically so the Categories panel isn't hidden.
+const recentProductsSection = document.querySelector(
+    "main .products-section"
+);
+
+const categoryTableBody = document.getElementById("categoryTableBody");
+const categoryMessage = document.getElementById("categoryMessage");
+
+const categoryModal = document.getElementById("categoryModal");
+const categoryForm = document.getElementById("categoryForm");
+const categoryNameInput = document.getElementById("categoryName");
+const categoryDescriptionInput =
+    document.getElementById("categoryDescription");
+
+const categoryModalTitle =
+    document.getElementById("categoryModalTitle");
+const categoryFormMessage =
+    document.getElementById("categoryFormMessage");
+
+let editingCategoryId = null;
+
+// Switch to Categories panel
+categoriesNav.addEventListener("click", async function (event) {
+    event.preventDefault();
+
+    recentProductsSection.style.display = "none";
+    categoriesPanel.style.display = "";
+    pageIntro.style.display = "none";
+    statsGrid.style.display = "none";
+
+    categoriesNav.classList.add("active");
+    dashboardNav.classList.remove("active");
+
+    document.querySelector(".topbar h1").textContent =
+        "Product Categories";
+    document.querySelector(".welcome-text").textContent =
+        "MANAGE YOUR INVENTORY";
+
+    await loadCategories();
+});
+
+// Switch back to Dashboard
+dashboardNav.addEventListener("click", function (event) {
+    event.preventDefault();
+
+    categoriesPanel.style.display = "none";
+    recentProductsSection.style.display = "";
+    pageIntro.style.display = "";
+    statsGrid.style.display = "";
+
+    dashboardNav.classList.add("active");
+    categoriesNav.classList.remove("active");
+
+    document.querySelector(".topbar h1").textContent =
+        "Inventory Overview";
+    document.querySelector(".welcome-text").textContent =
+        "WELCOME BACK";
+
+    loadProducts();
+});
+
+// Load categories
+async function loadCategories() {
+    categoryTableBody.innerHTML =
+        '<tr><td colspan="4">Loading categories...</td></tr>';
+
+    categoryMessage.textContent = "";
+
+    try {
+        const response = await fetch(CATEGORY_API);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                typeof data === "string"
+                    ? data
+                    : data.message || "Could not load categories."
+            );
+        }
+
+        categoryTableBody.innerHTML = "";
+
+        if (!Array.isArray(data) || data.length === 0) {
+            categoryTableBody.innerHTML =
+                '<tr><td colspan="4">No categories found. Add your first category.</td></tr>';
+            return;
+        }
+
+        data.forEach(category => {
+            const row = document.createElement("tr");
+
+            [
+                category.categoryId,
+                category.categoryName,
+                category.description || "—"
+            ].forEach(value => {
+                const cell = document.createElement("td");
+                cell.textContent = value ?? "";
+                row.appendChild(cell);
+            });
+
+            const actionsCell = document.createElement("td");
+
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.className = "add-button";
+            editButton.textContent = "Edit";
+            editButton.addEventListener("click", () => {
+                openCategoryEditor(category);
+            });
+
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.textContent = "Delete";
+            deleteButton.style.marginLeft = "8px";
+            deleteButton.addEventListener("click", () => {
+                deleteCategory(
+                    category.categoryId,
+                    category.categoryName
+                );
+            });
+
+            actionsCell.append(editButton, deleteButton);
+            row.appendChild(actionsCell);
+            categoryTableBody.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Category loading error:", error);
+        categoryTableBody.innerHTML =
+            '<tr><td colspan="4">Could not load categories. Check the API and Spring Boot server.</td></tr>';
+        categoryMessage.textContent = error.message;
+    }
+}
+
+// Open Add Category modal
+document.getElementById("addCategoryBtn").addEventListener(
+    "click",
+    function () {
+        editingCategoryId = null;
+        categoryForm.reset();
+        categoryFormMessage.textContent = "";
+        categoryModalTitle.textContent = "Add New Category";
+        categoryModal.style.display = "flex";
+    }
+);
+
+// Open Edit Category modal
+function openCategoryEditor(category) {
+    editingCategoryId = category.categoryId;
+
+    categoryNameInput.value = category.categoryName || "";
+    categoryDescriptionInput.value = category.description || "";
+
+    categoryFormMessage.textContent = "";
+    categoryModalTitle.textContent = "Edit Category";
+    categoryModal.style.display = "flex";
+}
+
+// Close modal
+document.getElementById("closeCategoryBtn").addEventListener(
+    "click",
+    function () {
+        categoryModal.style.display = "none";
+    }
+);
+
+categoryModal.addEventListener("click", function (event) {
+    if (event.target === categoryModal) {
+        categoryModal.style.display = "none";
+    }
+});
+
+// Add or Update category
+categoryForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const category = {
+        categoryName: categoryNameInput.value.trim(),
+        description: categoryDescriptionInput.value.trim()
+    };
+
+    if (!category.categoryName) {
+        categoryFormMessage.textContent =
+            "Please enter a category name.";
+        return;
+    }
+
+    const isEditing = editingCategoryId !== null;
+    const url = isEditing
+        ? `${CATEGORY_API}/${editingCategoryId}`
+        : CATEGORY_API;
+
+    categoryFormMessage.textContent =
+        isEditing ? "Updating category..." : "Saving category...";
+
+    try {
+        const response = await fetch(url, {
+            method: isEditing ? "PUT" : "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(category)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                typeof result === "string"
+                    ? result
+                    : result.message || "Could not save category."
+            );
+        }
+
+        categoryFormMessage.textContent =
+            isEditing
+                ? "Category updated successfully!"
+                : "Category added successfully!";
+
+        await loadCategories();
+
+        setTimeout(() => {
+            categoryModal.style.display = "none";
+            categoryForm.reset();
+            categoryFormMessage.textContent = "";
+            editingCategoryId = null;
+        }, 700);
+
+    } catch (error) {
+        console.error("Category save error:", error);
+        categoryFormMessage.textContent = error.message;
+    }
+});
+
+// Delete category
+async function deleteCategory(id, name) {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${CATEGORY_API}/${id}`, {
+            method: "DELETE"
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+            throw new Error(
+                responseText || "Could not delete category."
+            );
+        }
+
+        categoryMessage.textContent =
+            responseText || "Category deleted successfully.";
+
+        await loadCategories();
+
+    } catch (error) {
+        console.error("Category delete error:", error);
+        categoryMessage.textContent = error.message;
+    }
+}
+
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up | StockWise</title>
+    <link rel="stylesheet" href="auth.css">
+</head>
+
+<body>
+
+    <main class="auth-container">
+
+        <section class="form-box">
+
+            <div class="brand">
+                <span class="brand-icon">S</span>
+                <span>StockWise</span>
+            </div>
+
+            <p class="small-heading">GET STARTED</p>
+
+            <h1>Create your account</h1>
+
+            <p class="subtitle">
+                Manage your inventory smarter, every day.
+            </p>
+
+            <form id="signupForm">
+
+                <label for="fullName">Full Name</label>
+                <input
+                    type="text"
+                    id="fullName"
+                    placeholder="Enter your full name"
+                    required
+                >
+
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="you@example.com"
+                    required
+                >
+
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Create a password"
+                    minlength="8"
+                    required
+                >
+
+                <label for="confirmPassword">Confirm Password</label>
+                <input
+                    type="password"
+                    id="confirmPassword"
+                    placeholder="Enter password again"
+                    minlength="8"
+                    required
+                >
+
+                <button type="submit">Create Account <span>→</span></button>
+
+                <p id="message" role="status"></p>
+
+            </form>
+
+            <p class="switch-page">
+                Already have an account?
+                <a href="login.html">Log in</a>
+            </p>
+
+            <p class="footer-text">SMART INVENTORY MANAGEMENT</p>
+
+        </section>
+
+    </main>
+
+    <script src="auth.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | StockWise</title>
+    <link rel="stylesheet" href="auth.css">
+</head>
+
+<body>
+
+    <main class="auth-container">
+
+        <section class="form-box">
+
+            <div class="brand">
+                <span class="brand-icon">S</span>
+                <span>StockWise</span>
+            </div>
+
+            <p class="small-heading">WELCOME BACK</p>
+
+            <h1>Welcome back!</h1>
+
+            <p class="subtitle">
+                Log in to manage your inventory with ease.
+            </p>
+
+            <form id="loginForm">
+
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="you@example.com"
+                    required
+                >
+
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Enter your password"
+                    required
+                >
+
+                <button type="submit">Log In <span>→</span></button>
+
+                <p id="message" role="status"></p>
+
+            </form>
+
+            <p class="switch-page">
+                Don't have an account?
+                <a href="signup.html">Sign up</a>
+            </p>
+
+            <p class="footer-text">SMART INVENTORY MANAGEMENT</p>
+
+        </section>
+
+    </main>
+
+    <script src="auth.js"></script>
+
+</body>
+</html>
