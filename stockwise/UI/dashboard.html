@@ -28,7 +28,7 @@
     <a href="#" id="dashboardNav" class="active" data-panel="dashboard">Dashboard</a>
     <a href="#" id="productsNav" data-panel="products">Products</a>
     <a href="#" id="categoriesNav" data-panel="categories">Categories</a>
-    <a href="#" data-panel="lowstock">Low Stock</a>
+    <a href="#" id="lowStockNav" data-panel="lowstock">Low Stock</a>
     <a href="#" data-panel="suppliers">Suppliers</a>
     <a href="#" data-panel="reports">Reports</a>
 </nav>
@@ -131,6 +131,7 @@
                                 <th>Category ID</th>
                                 <th>Cost Price</th>
                                 <th>Selling Price</th>
+                                <th>Quantity</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -180,6 +181,32 @@
     </div>
 </section>
 
+            <!-- PRODUCTS PANEL: Category-wise product listing -->
+            <section id="productsPanel"
+                     class="products-section"
+                     style="display: none;">
+
+                <div class="section-header">
+                    <div>
+                        <h2>All Products</h2>
+                        <p>Products organized by category</p>
+                    </div>
+
+                    <button type="button"
+                            class="add-button"
+                            id="productsAddProductBtn">
+                        + Add Product
+                    </button>
+                </div>
+
+                <p id="groupedProductsMessage" role="status"></p>
+
+                <div id="groupedProductsContainer">
+                    <p class="empty-state">Loading products...</p>
+                </div>
+
+            </section>
+
 <!-- Category Modal -->
 <div id="categoryModal" class="modal" style="display: none;">
     <div class="modal-content">
@@ -199,6 +226,59 @@
         </form>
     </div>
 </div>
+
+
+
+<!-- LOW STOCK PANEL -->
+<section id="lowStockPanel" class="products-section" style="display: none;">
+
+    <div class="section-header">
+        <div>
+            <h2>Low Stock Alerts</h2>
+            <p>Products that need restocking</p>
+        </div>
+
+        <button type="button"
+                class="refresh-btn"
+                id="refreshLowStockBtn">
+            Refresh
+        </button>
+    </div>
+
+    <!-- Alert summary -->
+    <div class="low-stock-summary">
+        <div class="low-stock-summary-icon">!</div>
+        <div>
+            <h3 id="lowStockCount">0 Products</h3>
+            <p>Products at or below their reorder level</p>
+        </div>
+    </div>
+
+    <p id="lowStockMessage" class="low-stock-message"></p>
+
+    <!-- Low stock table -->
+    <div class="table-container">
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Product Name</th>
+                    <th>Current Stock</th>
+                    <th>Reorder Level</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody id="lowStockTableBody">
+                <tr>
+                    <td colspan="5">Loading low-stock products...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</section>
+
 
 
         </main>
@@ -344,15 +424,15 @@ async function loadProducts() {
         products.forEach(product => {
             const row = document.createElement("tr");
 
-            const values = [
+                    const values = [
                 product.productId,
                 product.productName,
                 product.sku,
                 product.categoryId,
                 product.costPrice,
-                product.sellingPrice
+                product.sellingPrice,
+                product.quantity ?? "—"
             ];
-
             values.forEach(value => {
                 const cell = document.createElement("td");
                 cell.textContent = value ?? "";
@@ -394,6 +474,211 @@ async function loadProducts() {
     }
 }
 
+    
+const productsNav = document.getElementById("productsNav");
+const productsPanel = document.getElementById("productsPanel");
+const groupedProductsContainer =
+    document.getElementById("groupedProductsContainer");
+const groupedProductsMessage =
+    document.getElementById("groupedProductsMessage");
+const productsAddProductBtn =
+    document.getElementById("productsAddProductBtn");
+
+// Open the category-wise Products panel
+productsNav.addEventListener("click", async function (event) {
+    event.preventDefault();
+
+    recentProductsSection.style.display = "none";
+    categoriesPanel.style.display = "none";
+    productsPanel.style.display = "";
+    lowStockPanel.style.display = "none";
+    pageIntro.style.display = "none";
+    statsGrid.style.display = "none";
+
+    document.querySelectorAll(".sidebar-menu a")
+        .forEach(link => link.classList.remove("active"));
+    productsNav.classList.add("active");
+
+    document.querySelector(".topbar h1").textContent = "All Products";
+    document.querySelector(".welcome-text").textContent =
+        "PRODUCTS BY CATEGORY";
+
+    await loadGroupedProducts();
+});
+
+// Reuse the existing Add Product modal
+productsAddProductBtn.addEventListener("click", function () {
+    addProductBtn.click();
+});
+
+// Load and group products by category
+async function loadGroupedProducts() {
+    groupedProductsContainer.replaceChildren();
+
+    groupedProductsMessage.textContent = "Loading products...";
+
+    try {
+        const response = await fetch(`${API_URL}/grouped`);
+
+        if (!response.ok) {
+            throw new Error("API request failed: " + response.status);
+        }
+
+        const products = await response.json();
+
+        groupedProductsContainer.replaceChildren();
+
+        if (!Array.isArray(products) || products.length === 0) {
+            groupedProductsMessage.textContent = "";
+            const empty = document.createElement("p");
+            empty.className = "empty-state";
+            empty.textContent = "No products found. Add your first product.";
+            groupedProductsContainer.appendChild(empty);
+            return;
+        }
+
+        // Group products by category ID
+        const groups = new Map();
+
+        products.forEach(product => {
+            const categoryId = product.categoryId;
+            const categoryName = product.categoryName || "Uncategorized";
+            const key = categoryId ?? "uncategorized";
+
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    categoryId,
+                    categoryName,
+                    products: []
+                });
+            }
+
+            groups.get(key).products.push(product);
+        });
+
+        groups.forEach(group => {
+            const section = document.createElement("section");
+            section.className = "category-product-group";
+
+            const heading = document.createElement("div");
+            heading.className = "category-product-heading";
+
+            const headingText = document.createElement("div");
+            const title = document.createElement("h3");
+            title.textContent = group.categoryName;
+
+            const categoryIdText = document.createElement("p");
+            categoryIdText.textContent =
+                "Category ID: " + (group.categoryId ?? "—");
+
+            headingText.append(title, categoryIdText);
+            heading.appendChild(headingText);
+            section.appendChild(heading);
+
+            const tableContainer = document.createElement("div");
+            tableContainer.className = "table-container";
+
+            const table = document.createElement("table");
+            const thead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+
+            [
+                "Product ID",
+                "Product Name",
+                "SKU",
+                "Category ID",
+                "Category Name",
+                "Actions"
+            ].forEach(label => {
+                const th = document.createElement("th");
+                th.textContent = label;
+                headerRow.appendChild(th);
+            });
+
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+
+            group.products.forEach(product => {
+                const row = document.createElement("tr");
+
+                [
+                    product.productId,
+                    product.productName,
+                    product.sku,
+                    product.categoryId,
+                    product.categoryName
+                ].forEach(value => {
+                    const td = document.createElement("td");
+                    td.textContent = value ?? "—";
+                    row.appendChild(td);
+                });
+
+                const actions = document.createElement("td");
+
+                const editButton = document.createElement("button");
+                editButton.type = "button";
+                editButton.textContent = "Edit";
+                editButton.className =
+                    "product-action-button edit-product-button";
+
+                editButton.addEventListener("click", async () => {
+                    try {
+                        const result = await fetch(
+                            `${API_URL}/${product.productId}`
+                        );
+
+                        if (!result.ok) {
+                            throw new Error("Could not load product details.");
+                        }
+
+                        const fullProduct = await result.json();
+                        editProduct(fullProduct);
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                });
+
+                const deleteButton = document.createElement("button");
+                deleteButton.type = "button";
+                deleteButton.textContent = "Delete";
+                deleteButton.className =
+                    "product-action-button delete-product-button";
+
+                deleteButton.addEventListener("click", async () => {
+                    await deleteProduct(
+                        product.productId,
+                        product.productName
+                    );
+                    await loadGroupedProducts();
+                });
+
+                actions.append(editButton, deleteButton);
+                row.appendChild(actions);
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            tableContainer.appendChild(table);
+            section.appendChild(tableContainer);
+            groupedProductsContainer.appendChild(section);
+        });
+
+        groupedProductsMessage.textContent =
+            `${products.length} products across ${groups.size} categories`;
+
+    } catch (error) {
+        console.error("Grouped products loading error:", error);
+        groupedProductsMessage.textContent =
+            "Could not load grouped products: " + error.message;
+        groupedProductsContainer.replaceChildren();
+    }
+}
+
+
+
+
 // Edit: Fill the form with the selected product
 function editProduct(product) {
     editingProductId = product.productId;
@@ -413,6 +698,12 @@ function editProduct(product) {
     document.getElementById("sellingPrice").value =
         product.sellingPrice ?? "";
 
+        document.getElementById("quantity").value =
+    product.quantity ?? 0;
+
+document.getElementById("reorderLevel").value =
+    product.reorderLevel ?? 10;
+
     productMessage.textContent = "";
     productModalTitle.textContent = "Update Product";
     productModal.style.display = "flex";
@@ -422,13 +713,15 @@ function editProduct(product) {
 productForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const product = {
-        productName: document.getElementById("productName").value.trim(),
-        sku: document.getElementById("sku").value.trim(),
-        categoryId: Number(document.getElementById("categoryId").value),
-        costPrice: Number(document.getElementById("costPrice").value),
-        sellingPrice: Number(document.getElementById("sellingPrice").value)
-    };
+   const product = {
+    productName: document.getElementById("productName").value.trim(),
+    sku: document.getElementById("sku").value.trim(),
+    categoryId: Number(document.getElementById("categoryId").value),
+    costPrice: Number(document.getElementById("costPrice").value),
+    sellingPrice: Number(document.getElementById("sellingPrice").value),
+    quantity: Number(document.getElementById("quantity").value),
+    reorderLevel: Number(document.getElementById("reorderLevel").value)
+};
 
     if (
         !product.productName ||
@@ -475,8 +768,10 @@ productForm.addEventListener("submit", async (event) => {
             : "Product added successfully!";
 
         await loadProducts();
+        await loadGroupedProducts();
 
         productForm.reset();
+
         editingProductId = null;
 
         setTimeout(() => {
@@ -530,13 +825,11 @@ document.addEventListener("DOMContentLoaded", loadProducts);
 
 
 
-
 /* =========================
    CATEGORIES MODULE
 ========================= */
 
 const CATEGORY_API = "http://localhost:8080/api/categories";
-
 const categoriesNav = document.getElementById("categoriesNav");
 const dashboardNav = document.getElementById("dashboardNav");
 
@@ -567,45 +860,61 @@ const categoryFormMessage =
 
 let editingCategoryId = null;
 
-// Switch to Categories panel
+
+ // Switch to Categories panel
 categoriesNav.addEventListener("click", async function (event) {
     event.preventDefault();
 
     recentProductsSection.style.display = "none";
+    productsPanel.style.display = "none";
     categoriesPanel.style.display = "";
+    lowStockPanel.style.display = "none";
+
     pageIntro.style.display = "none";
     statsGrid.style.display = "none";
 
+    document.querySelectorAll(".sidebar-menu a")
+        .forEach(link => link.classList.remove("active"));
+
     categoriesNav.classList.add("active");
-    dashboardNav.classList.remove("active");
 
     document.querySelector(".topbar h1").textContent =
         "Product Categories";
+
     document.querySelector(".welcome-text").textContent =
         "MANAGE YOUR INVENTORY";
 
     await loadCategories();
 });
 
-// Switch back to Dashboard
+
+
+ // Switch back to Dashboard
 dashboardNav.addEventListener("click", function (event) {
     event.preventDefault();
 
+    productsPanel.style.display = "none";
     categoriesPanel.style.display = "none";
+    lowStockPanel.style.display = "none";
+
     recentProductsSection.style.display = "";
     pageIntro.style.display = "";
     statsGrid.style.display = "";
 
+    document.querySelectorAll(".sidebar-menu a")
+        .forEach(link => link.classList.remove("active"));
+
     dashboardNav.classList.add("active");
-    categoriesNav.classList.remove("active");
 
     document.querySelector(".topbar h1").textContent =
         "Inventory Overview";
+
     document.querySelector(".welcome-text").textContent =
         "WELCOME BACK";
 
     loadProducts();
 });
+
 
 // Load categories
 async function loadCategories() {
@@ -812,6 +1121,122 @@ async function deleteCategory(id, name) {
 }
 
 
+
+/* =========================
+   LOW STOCK MODULE
+========================= */
+
+
+const LOW_STOCK_API = "http://localhost:8080/api/inventory/low-stock";
+
+const lowStockNav = document.getElementById("lowStockNav");
+const lowStockPanel = document.getElementById("lowStockPanel");
+const lowStockTableBody = document.getElementById("lowStockTableBody");
+const lowStockCount = document.getElementById("lowStockCount");
+const lowStockMessage = document.getElementById("lowStockMessage");
+const refreshLowStockBtn = document.getElementById("refreshLowStockBtn");
+
+const dashboardPanel = document.querySelector("main .products-section");
+const dashboardIntro = document.querySelector(".page-intro");
+const dashboardStats = document.querySelector(".stats-grid");
+
+
+function showLowStockPanel() {
+    dashboardPanel.style.display = "none";
+    productsPanel.style.display = "none";
+    categoriesPanel.style.display = "none";
+    lowStockPanel.style.display = "";
+
+    dashboardIntro.style.display = "none";
+    dashboardStats.style.display = "none";
+
+    document.querySelectorAll(".sidebar-menu a")
+        .forEach(link => link.classList.remove("active"));
+
+    lowStockNav.classList.add("active");
+
+    document.querySelector(".topbar h1").textContent =
+        "Low Stock Alerts";
+
+    document.querySelector(".welcome-text").textContent =
+        "MANAGE YOUR INVENTORY";
+
+    loadLowStockProducts();
+}
+
+lowStockNav.addEventListener("click", event => {
+    event.preventDefault();
+    showLowStockPanel();
+});
+
+refreshLowStockBtn.addEventListener("click", loadLowStockProducts);
+
+async function loadLowStockProducts() {
+    lowStockTableBody.innerHTML =
+        '<tr><td colspan="5">Loading low-stock products...</td></tr>';
+
+    lowStockMessage.textContent = "";
+    lowStockMessage.classList.remove("error");
+
+    try {
+        const response = await fetch(LOW_STOCK_API);
+
+        if (!response.ok) {
+            throw new Error("API request failed: " + response.status);
+        }
+
+        const products = await response.json();
+
+        lowStockTableBody.innerHTML = "";
+        lowStockCount.textContent = `${products.length} Products`;
+
+        if (!Array.isArray(products) || products.length === 0) {
+            lowStockTableBody.innerHTML =
+                '<tr><td colspan="5">No low-stock products. All good!</td></tr>';
+            return;
+        }
+
+        products.forEach(product => {
+            const row = document.createElement("tr");
+
+            const values = [
+                product.productId,
+                product.productName,
+                product.quantity,
+                product.reorderLevel
+            ];
+
+            values.forEach(value => {
+                const cell = document.createElement("td");
+                cell.textContent = value ?? "";
+                row.appendChild(cell);
+            });
+
+            const statusCell = document.createElement("td");
+            const status = document.createElement("span");
+
+            status.className = "low-stock-status";
+            status.textContent =
+                Number(product.quantity) === 0
+                    ? "Out of Stock"
+                    : "Low Stock";
+
+            statusCell.appendChild(status);
+            row.appendChild(statusCell);
+            lowStockTableBody.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Low stock loading error:", error);
+
+        lowStockTableBody.innerHTML =
+            '<tr><td colspan="5">Could not load low-stock products.</td></tr>';
+
+        lowStockMessage.textContent =
+            error.message + ". Check the backend API.";
+        lowStockMessage.classList.add("error");
+    }
+}
 </script>
 
 </body>
