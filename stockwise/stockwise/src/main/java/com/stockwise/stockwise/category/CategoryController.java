@@ -102,6 +102,8 @@ public class CategoryController {
                     existing.setDescription(
                             description == null ? null : description.trim());
 
+                            existing.setExpiryTracked(updatedCategory.isExpiryTracked());
+
                     Category saved = categoryRepository.save(existing);
 
                     return ResponseEntity.ok(saved);

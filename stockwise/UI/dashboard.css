@@ -659,3 +659,492 @@ td {
         padding: 15px;
     }
 }
+/* Low Stock Status Badges */
+
+.low-stock-status {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.low-stock-status.low {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.low-stock-status.normal {
+    background-color: #dcfce7;
+    color: #15803d;
+}
+
+.low-stock-status.over {
+    background-color: #ffedd5;
+    color: #c2410c;
+}
+
+
+
+
+
+/* Batch & Expiry UI */
+
+#batchExpiryPanel .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+#batchExpiryPanel .table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+#batchExpiryPanel table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#batchExpiryPanel th,
+#batchExpiryPanel td {
+    padding: 12px 14px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+#batchExpiryPanel tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+#batchExpiryPanel th {
+    background: #f8fafc;
+}
+
+#batchModal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+#batchModal .modal-content {
+    background: white;
+    width: 100%;
+    max-width: 520px;
+    padding: 24px;
+    border-radius: 12px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#batchModal form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#batchModal input {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+#batchModal .section-header button {
+    cursor: pointer;
+}
+
+
+
+
+/* Batch Modal - Same styling as Add Product form */
+
+#batchModal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(16, 60, 50, 0.65);
+    overflow-y: auto;
+}
+
+#batchModal .modal-content {
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 32px 35px;
+    border-radius: 0;
+    background: #f7f5ed;
+    color: #174b3e;
+    box-shadow: none;
+}
+
+#batchModal #batchModalTitle {
+    margin: 0 0 24px;
+    color: #174b3e;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+/* Form layout */
+#batchModal #batchForm {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#batchModal #batchForm label {
+    display: block;
+    margin-top: 10px;
+    color: #193f35;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+#batchModal #batchForm input {
+    width: 100%;
+    min-height: 51px;
+    box-sizing: border-box;
+    padding: 12px 15px;
+    margin: 0 0 7px;
+    border: 1px solid #d5ddd3;
+    border-radius: 11px;
+    background: #ffffff;
+    color: #172b25;
+    font: inherit;
+    font-size: 16px;
+    outline: none;
+}
+
+#batchModal #batchForm input:focus {
+    border-color: #174b3e;
+    box-shadow: 0 0 0 2px rgba(23, 75, 62, 0.10);
+}
+
+/* Form buttons */
+#batchModal #batchForm .section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+#batchModal #saveBatchBtn {
+    width: 100%;
+    min-height: 52px;
+    border: none;
+    border-radius: 11px;
+    background: #174b3e;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+#batchModal #saveBatchBtn:hover {
+    background: #103c32;
+}
+
+#batchModal #cancelBatchBtn {
+    width: 100%;
+    min-height: 45px;
+    border: 1px solid #d5ddd3;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #174b3e;
+    font-weight: 600;
+}
+
+#batchModal #closeBatchModal {
+    padding: 7px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #174b3e;
+    font-size: 20px;
+}
+
+/* Small screens */
+@media (max-width: 600px) {
+    #batchModal {
+        padding: 10px;
+    }
+
+    #batchModal .modal-content {
+        padding: 24px 20px;
+    }
+
+    #batchModal #batchModalTitle {
+        font-size: 25px;
+    }
+}
+
+
+
+/* FORCE Batch Form Styling */
+
+#batchModal.modal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99999 !important;
+    display: none;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+    background: rgba(16, 60, 50, 0.65) !important;
+    overflow-y: auto !important;
+}
+
+#batchModal .modal-content {
+    width: 100% !important;
+    max-width: 600px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+    padding: 32px 35px !important;
+    background: #f7f5ed !important;
+    border-radius: 0 !important;
+    color: #174b3e !important;
+}
+
+#batchModal #batchModalTitle {
+    color: #174b3e !important;
+    font-size: 30px !important;
+    font-weight: 700 !important;
+    margin: 0 0 24px !important;
+}
+
+#batchModal #batchForm {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+#batchModal #batchForm label {
+    display: block !important;
+    margin-top: 10px !important;
+    color: #193f35 !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+}
+
+#batchModal #batchForm input {
+    display: block !important;
+    width: 100% !important;
+    min-height: 51px !important;
+    box-sizing: border-box !important;
+    padding: 12px 15px !important;
+    margin: 0 0 7px !important;
+    border: 1px solid #d5ddd3 !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    color: #172b25 !important;
+    font-size: 16px !important;
+}
+
+#batchModal #batchForm .section-header {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    margin-top: 18px !important;
+}
+
+#batchModal #saveBatchBtn {
+    width: 100% !important;
+    min-height: 52px !important;
+    background: #174b3e !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 11px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+}
+
+#batchModal #cancelBatchBtn {
+    width: 100% !important;
+    min-height: 45px !important;
+    background: #fff !important;
+    color: #174b3e !important;
+    border: 1px solid #d5ddd3 !important;
+    border-radius: 10px !important;
+}
+
+
+
+/* Batch Modal Button Styling Fix */
+
+#batchModal .modal-content button {
+    font-family: inherit !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 12px 18px !important;
+    cursor: pointer !important;
+    transition: background 0.2s ease !important;
+}
+
+/* Save Batch - Dark Green */
+#batchModal #saveBatchBtn {
+    display: block !important;
+    width: 100% !important;
+    min-height: 52px !important;
+    background: #174b3e !important;
+    color: #ffffff !important;
+}
+
+#batchModal #saveBatchBtn:hover {
+    background: #103c32 !important;
+}
+
+/* Cancel - White */
+#batchModal #cancelBatchBtn {
+    display: block !important;
+    width: 100% !important;
+    min-height: 48px !important;
+    background: #ffffff !important;
+    color: #174b3e !important;
+    border: 1px solid #d5ddd3 !important;
+}
+
+#batchModal #cancelBatchBtn:hover {
+    background: #f1eee6 !important;
+}
+
+/* Close Button */
+#batchModal #closeBatchModal {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    background: #e8dfc9 !important;
+    color: #174b3e !important;
+    font-size: 20px !important;
+}
+
+/* Add Batch Button */
+#batchExpiryPanel #addBatchBtn {
+    background: #d9c397 !important;
+    color: #103c32 !important;
+    border: none !important;
+    border-radius: 9px !important;
+    padding: 12px 20px !important;
+    font-family: inherit !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+}
+
+#batchExpiryPanel #addBatchBtn:hover {
+    background: #cbb283 !important;
+}
+
+/* Batch & Expiry - Edit and Delete Buttons */
+#batchExpiryPanel #batchTableBody button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Edit Button */
+#batchExpiryPanel #batchTableBody button:first-child {
+    background-color: #d9c397;
+    color: #103c32;
+    border: 1px solid #cbb283;
+}
+
+#batchExpiryPanel #batchTableBody button:first-child:hover {
+    background-color: #cbb283;
+    transform: translateY(-1px);
+}
+
+/* Delete Button */
+#batchExpiryPanel #batchTableBody button:last-child {
+    background-color: #f8e5e2;
+    color: #a12d27;
+    border: 1px solid #e8b8b2;
+}
+
+#batchExpiryPanel #batchTableBody button:last-child:hover {
+    background-color: #a12d27;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+
+
+/* Smart Reorder Summary Cards */
+.reorder-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin: 24px 0;
+}
+
+.reorder-summary-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reorder-summary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.reorder-card-icon {
+    display: none;
+}
+
+.reorder-summary-card p {
+    margin: 0 0 8px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.reorder-summary-card h3 {
+    margin: 0 0 6px;
+    color: #172554;
+    font-size: 27px;
+    font-weight: 700;
+}
+
+.reorder-summary-card span {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+@media (max-width: 700px) {
+    .reorder-summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .reorder-summary-card {
+        padding: 18px;
+    }
+}

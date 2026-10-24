@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.stockwise.stockwise.config.EmailAlertService;
+
 import java.util.List;
 import java.util.Map;
 
@@ -19,10 +21,14 @@ import java.util.Map;
 public class LowStockController {
 
     private final JdbcTemplate jdbcTemplate;
+    private final EmailAlertService emailAlertService;
 
-    public LowStockController(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
+    public LowStockController(
+        JdbcTemplate jdbcTemplate,
+        EmailAlertService emailAlertService) {
+    this.jdbcTemplate = jdbcTemplate;
+    this.emailAlertService = emailAlertService;
+}
 
     @GetMapping("/low-stock")
     public List<Map<String, Object>> getLowStockProducts() {
@@ -40,6 +46,12 @@ public class LowStockController {
             ORDER BY i.quantity ASC
             """;
 
-        return jdbcTemplate.queryForList(sql);
+        return jdbcTemplate.queryForList(sql); 
     }
+
+     @GetMapping("/test-email")
+public String testEmail() {
+    emailAlertService.sendLowStockAlerts();
+    return "Email test completed. Check the terminal and inbox.";
+}
 }

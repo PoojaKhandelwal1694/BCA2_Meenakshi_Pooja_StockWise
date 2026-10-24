@@ -29,8 +29,19 @@
     <a href="#" id="productsNav" data-panel="products">Products</a>
     <a href="#" id="categoriesNav" data-panel="categories">Categories</a>
     <a href="#" id="lowStockNav" data-panel="lowstock">Low Stock</a>
-    <a href="#" data-panel="suppliers">Suppliers</a>
-    <a href="#" data-panel="reports">Reports</a>
+    <a href="#" id="batchExpiryNav">
+    <span>Batch &amp; Expiry</span>
+</a>
+
+<a href="#" id="smartReorderNav">
+    <span>Smart Reorder</span>
+
+</a>
+<a href="#" id="salesNav">
+    <span>Sales</span>
+</a>
+
+   
 </nav>
 
 
@@ -80,34 +91,47 @@
                 </button>
             </section>
 
-            <!-- Summary Cards -->
-            <section class="stats-grid">
+            
+<!-- Summary Cards -->
+<section class="stats-grid">
 
-                <article class="stat-card">
-                    <p>Total Products</p>
-                    <h2>0</h2>
-                    <span>Products in inventory</span>
-                </article>
+    <article class="stat-card">
+        <p>Total Categories</p>
+        <h2 id="totalCategories">0</h2>
+        <span>Categories available</span>
+    </article>
 
-                <article class="stat-card">
-                    <p>Total Stock Units</p>
-                    <h2>0</h2>
-                    <span>Units available</span>
-                </article>
+    <article class="stat-card">
+        <p>Total Products</p>
+        <h2 id="totalProducts">0</h2>
+        <span>Products in inventory</span>
+    </article>
 
-                <article class="stat-card">
-                    <p>Low Stock Items</p>
-                    <h2>0</h2>
-                    <span>Need attention</span>
-                </article>
+    <article class="stat-card">
+        <p>Low Stock Products</p>
+        <h2 id="totalLowStock">0</h2>
+        <span>Need attention</span>
+    </article>
 
-                <article class="stat-card">
-                    <p>Inventory Value</p>
-                    <h2>₹0</h2>
-                    <span>Estimated stock value</span>
-                </article>
+    <article class="stat-card">
+        <p>Inventory Value</p>
+        <h2 id="inventoryValue">₹0</h2>
+        <span>Current stock cost value</span>
+    </article>
 
-            </section>
+    
+<div class="stat-card">
+    <h3>Expired Batches</h3>
+    <p id="expiredBatchCount">0</p>
+</div>
+
+<div class="stat-card">
+    <h3>Expiring Soon</h3>
+    <p id="expiringSoonBatchCount">0</p>
+</div>
+
+
+</section>
 
             <!-- Recent Products -->
             <section class="products-section">
@@ -165,18 +189,19 @@
     <div class="table-container">
         <table>
             <thead>
-                <tr>
-                    <th>Category ID</th>
-                    <th>Category Name</th>
-                    <th>Description</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="categoryTableBody">
-                <tr>
-                    <td colspan="4">Loading categories...</td>
-                </tr>
-            </tbody>
+    <tr>
+        <th>Category ID</th>
+        <th>Category Name</th>
+        <th>Description</th>
+        <th>Expiry Tracked</th>
+        <th>Actions</th>
+    </tr>
+</thead>
+<tbody id="categoryTableBody">
+    <tr>
+        <td colspan="5">Loading categories...</td>
+    </tr>
+</tbody>
         </table>
     </div>
 </section>
@@ -218,6 +243,12 @@
 
             <label for="categoryDescription">Description</label>
             <input type="text" id="categoryDescription" maxlength="255">
+
+            <label for="categoryExpiryTracked">Track Batch & Expiry?</label>
+<select id="categoryExpiryTracked" required>
+    <option value="false">No — expiry tracking not required</option>
+    <option value="true">Yes — track batch and expiry</option>
+</select>
 
             <p id="categoryFormMessage" role="status"></p>
 
@@ -280,8 +311,248 @@
 </section>
 
 
+<!-- BATCH & EXPIRY PANEL -->
+<section id="batchExpiryPanel" class="products-section"
+         style="display: none;">
+
+    <div class="section-header">
+        <div>
+            <h2>Batch &amp; Expiry Management</h2>
+            <p>Manage product batches and track expiry dates.</p>
+        </div>
+
+        <button type="button" id="addBatchBtn" class="btn-primary">
+            + Add Batch
+        </button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Batch ID</th>
+                    <th>Product ID</th>
+                    <th>Batch Number</th>
+                    <th>Expiry Date</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="batchTableBody">
+                <tr>
+                    <td colspan="7">Loading batches...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p id="batchMessage"></p>
+
+</section>
+
+
+
+<!-- ADD BATCH MODAL -->
+<div id="batchModal" class="modal" style="display: none;">
+    <div class="modal-content">
+
+        <div class="section-header">
+            <h2 id="batchModalTitle">Add New Batch</h2>
+            <button type="button" id="closeBatchModal"
+                    class="btn-secondary">✕</button>
+        </div>
+
+        <form id="batchForm">
+
+            <input type="hidden" id="batchId">
+
+            <label for="batchProductId">Product ID</label>
+            <input type="number" id="batchProductId"
+                   min="1" required>
+
+            <label for="batchNumber">Batch Number</label>
+            <input type="text" id="batchNumber"
+                   maxlength="100" required>
+
+            <label for="batchExpiryDate">Expiry Date</label>
+            <input type="date" id="batchExpiryDate">
+
+            <label for="batchQuantity">Quantity</label>
+            <input type="number" id="batchQuantity"
+                   min="0" value="0" required>
+
+            <div class="section-header">
+                <button type="submit" id="saveBatchBtn"
+                        class="btn-primary">Save Batch</button>
+                <button type="button" id="cancelBatchBtn"
+                        class="btn-secondary">Cancel</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+
+<!-- Smart Record  Panel -->
+<section id="smartReorderPanel" class="products-section"
+         style="display:none;">
+
+    <div class="section-header">
+        <div>
+            <h2>Smart Reorder Assistant</h2>
+            <p>Stock recommendations and estimated purchase cost.</p>
+        </div>
+        <button type="button" id="refreshReorderBtn"
+                class="btn-primary">Refresh</button>
+    </div>
+
+<div class="reorder-summary-cards">
+    <div class="reorder-summary-card">
+        <div class="reorder-card-icon"></div>
+        <div>
+            <p>Products Needing Reorder</p>
+            <h3 id="reorderCount">0</h3>
+            <span>Low or critical stock</span>
+        </div>
+    </div>
+
+    <div class="reorder-summary-card">
+        <div class="reorder-card-icon"></div>
+        <div>
+            <p>Total Suggested Purchase Cost</p>
+            <h3 id="totalReorderCost">₹0</h3>
+            <span>Estimated restocking budget</span>
+        </div>
+    </div>
+</div>
+
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Current Stock</th>
+                    <th>Reorder Level</th>
+                    <th>Status</th>
+                    <th>Suggested Qty</th>
+                    <th>Purchase Cost</th>
+                    <th>Profit / Unit</th>
+                </tr>
+            </thead>
+            <tbody id="reorderTableBody">
+                <tr><td colspan="7">Loading recommendations...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p id="reorderMessage"></p>
+</section>
+
+
+<!-- SALES PANEL -->
+<section id="salesPanel" class="products-section" style="display: none;">
+    <div class="section-header">
+        <div>
+            <h2>Sell Product</h2>
+            <p>Record a sale and update inventory stock.</p>
+        </div>
+    </div>
+
+    <form id="salesForm" style="max-width: 500px;">
+        <label for="saleProductId">Product ID</label>
+        <input
+            type="number"
+            id="saleProductId"
+            min="1"
+            required
+            placeholder="Enter product ID"
+        >
+
+        <br><br>
+
+        <label for="saleQuantity">Quantity to Sell</label>
+        <input
+            type="number"
+            id="saleQuantity"
+            min="1"
+            step="1"
+            required
+            placeholder="Enter quantity"
+        >
+
+        <br><br>
+
+        <button type="submit" class="add-button">Sell Product</button>
+
+        <p id="saleMessage" role="status"></p>
+    </form>
+
+    
+<!-- SALES HISTORY -->
+<div class="sales-history-section" style="margin-top: 35px;">
+    <div class="section-header">
+        <div>
+            <h2>Sales History</h2>
+            <p>View all recorded sales.</p>
+        </div>
+
+<div style="margin: 20px 0; display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
+    <div>
+        <label for="salesHistoryDate">Select Sales Date</label>
+        <input type="date" id="salesHistoryDate">
+    </div>
+
+    <button type="button" id="viewDailySalesBtn" class="add-button">
+        View Sales
+    </button>
+
+    <button type="button" id="showAllSalesBtn" class="add-button">
+        Show All
+    </button>
+</div>
+
+<div style="display: flex; gap: 24px; margin-bottom: 20px; flex-wrap: wrap;">
+    <p>Number of Sales: <strong id="dailySalesCount">0</strong></p>
+    <p>Daily Revenue: <strong id="dailySalesRevenue">₹0</strong></p>
+</div>
+
+
+        <button type="button" id="refreshSalesHistoryBtn"
+                class="add-button">
+            Refresh History
+        </button>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Sale ID</th>
+                    <th>Product Name</th>
+                    <th>Quantity Sold</th>
+                    <th>Selling Price</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+
+            <tbody id="salesHistoryTableBody">
+                <tr>
+                    <td colspan="5">Loading sales history...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p id="salesHistoryMessage" role="status"></p>
+</div>
+
+</section>
 
         </main>
+
+
         <!-- Add Product Modal -->
 <div id="productModal" class="modal" style="display: none;">
     <div class="modal-content">
@@ -294,8 +565,14 @@
             <label for="sku">SKU</label>
             <input type="text" id="sku" required>
 
-            <label for="categoryId">Category ID</label>
-            <input type="number" id="categoryId" min="1" required>
+            
+<label for="categoryId">Category</label>
+<select id="categoryId" required>
+    <option value="">Loading categories...</option>
+</select>
+
+
+
 
             <label for="costPrice">Cost Price (₹)</label>
             <input type="number" id="costPrice" min="0" step="0.01" required>
@@ -322,6 +599,57 @@
 <script>
 const API_URL = "http://localhost:8080/api/products";
 
+
+
+const CATEGORY_API = "http://localhost:8080/api/categories";
+const LOW_STOCK_API = "http://localhost:8080/api/inventory/low-stock";
+
+async function loadDashboardStats() {
+    try {
+        const [productsResponse, categoriesResponse, lowStockResponse] =
+            await Promise.all([
+                fetch(API_URL),
+                fetch(CATEGORY_API),
+                fetch(LOW_STOCK_API)
+            ]);
+
+        if (!productsResponse.ok ||
+            !categoriesResponse.ok ||
+            !lowStockResponse.ok) {
+            throw new Error("Could not load dashboard statistics.");
+        }
+
+        const products = await productsResponse.json();
+        const categories = await categoriesResponse.json();
+        const lowStockProducts = await lowStockResponse.json();
+
+        document.getElementById("totalCategories").textContent =
+            categories.length;
+
+        document.getElementById("totalProducts").textContent =
+            products.length;
+
+        document.getElementById("totalLowStock").textContent =
+            lowStockProducts.length;
+
+        const totalValue = products.reduce((total, product) => {
+            const quantity = Number(product.quantity) || 0;
+            const costPrice = Number(product.costPrice) || 0;
+
+            return total + (quantity * costPrice);
+        }, 0);
+
+        document.getElementById("inventoryValue").textContent =
+            totalValue.toLocaleString("en-IN", {
+                style: "currency",
+                currency: "INR",
+                maximumFractionDigits: 2
+            });
+
+    } catch (error) {
+        console.error("Dashboard stats error:", error);
+    }
+}
 
 
 const AUTH_URL = "http://127.0.0.1:8080/api/auth";
@@ -488,6 +816,8 @@ const productsAddProductBtn =
 productsNav.addEventListener("click", async function (event) {
     event.preventDefault();
 
+    batchExpiryPanel.style.display = "none";
+    smartReorderPanel.style.display = "none";
     recentProductsSection.style.display = "none";
     categoriesPanel.style.display = "none";
     productsPanel.style.display = "";
@@ -582,18 +912,22 @@ async function loadGroupedProducts() {
             const thead = document.createElement("thead");
             const headerRow = document.createElement("tr");
 
-            [
-                "Product ID",
-                "Product Name",
-                "SKU",
-                "Category ID",
-                "Category Name",
-                "Actions"
-            ].forEach(label => {
-                const th = document.createElement("th");
-                th.textContent = label;
-                headerRow.appendChild(th);
-            });
+            
+[
+    "Product ID",
+    "Product Name",
+    "SKU",
+    "Category ID",
+    "Category Name",
+    "Quantity",
+    "Reorder Level",
+    "Actions"
+].forEach(label => {
+    const th = document.createElement("th");
+    th.textContent = label;
+    headerRow.appendChild(th);
+});
+
 
             thead.appendChild(headerRow);
             table.appendChild(thead);
@@ -603,17 +937,21 @@ async function loadGroupedProducts() {
             group.products.forEach(product => {
                 const row = document.createElement("tr");
 
-                [
-                    product.productId,
-                    product.productName,
-                    product.sku,
-                    product.categoryId,
-                    product.categoryName
-                ].forEach(value => {
-                    const td = document.createElement("td");
-                    td.textContent = value ?? "—";
-                    row.appendChild(td);
-                });
+                
+[
+    product.productId,
+    product.productName,
+    product.sku,
+    product.categoryId,
+    product.categoryName,
+    product.quantity ?? 0,
+    product.reorderLevel ?? 10
+].forEach(value => {
+    const td = document.createElement("td");
+    td.textContent = value ?? "—";
+    row.appendChild(td);
+});
+
 
                 const actions = document.createElement("td");
 
@@ -769,10 +1107,13 @@ productForm.addEventListener("submit", async (event) => {
 
         await loadProducts();
         await loadGroupedProducts();
+        await loadDashboardStats();
 
         productForm.reset();
 
         editingProductId = null;
+
+        
 
         setTimeout(() => {
             productModal.style.display = "none";
@@ -811,6 +1152,7 @@ async function deleteProduct(id, name) {
 
         alert("Product deleted successfully!");
         await loadProducts();
+        await loadDashboardStats();
 
     } catch (error) {
         console.error("Delete error:", error);
@@ -821,6 +1163,8 @@ async function deleteProduct(id, name) {
 // Load products when dashboard opens
 document.addEventListener("DOMContentLoaded", loadProducts);
 
+document.addEventListener("DOMContentLoaded", loadDashboardStats);
+
 
 
 
@@ -829,7 +1173,55 @@ document.addEventListener("DOMContentLoaded", loadProducts);
    CATEGORIES MODULE
 ========================= */
 
-const CATEGORY_API = "http://localhost:8080/api/categories";
+//const CATEGORY_API = "http://localhost:8080/api/categories"; 
+
+
+const categoryIdInput = document.getElementById("categoryId");
+
+async function loadProductCategories() {
+    try {
+        const response = await fetch(CATEGORY_API);
+
+        if (!response.ok) {
+            throw new Error("Could not load categories.");
+        }
+
+        const categories = await response.json();
+
+        categoryIdInput.replaceChildren();
+
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Select Category";
+        categoryIdInput.appendChild(placeholder);
+
+        categories.forEach(category => {
+            const option = document.createElement("option");
+            option.value = category.categoryId;
+            option.textContent =
+                `${category.categoryName} (ID: ${category.categoryId})`;
+
+            // Expiry status ko option par available rakho
+            option.dataset.expiryTracked =
+                String(category.expiryTracked === true);
+
+            categoryIdInput.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Category dropdown error:", error);
+        categoryIdInput.replaceChildren();
+
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "Could not load categories";
+        categoryIdInput.appendChild(option);
+    }
+}
+
+loadProductCategories();
+
+
+
 const categoriesNav = document.getElementById("categoriesNav");
 const dashboardNav = document.getElementById("dashboardNav");
 
@@ -853,6 +1245,9 @@ const categoryNameInput = document.getElementById("categoryName");
 const categoryDescriptionInput =
     document.getElementById("categoryDescription");
 
+    const categoryExpiryTrackedInput =
+    document.getElementById("categoryExpiryTracked");
+
 const categoryModalTitle =
     document.getElementById("categoryModalTitle");
 const categoryFormMessage =
@@ -865,6 +1260,8 @@ let editingCategoryId = null;
 categoriesNav.addEventListener("click", async function (event) {
     event.preventDefault();
 
+    batchExpiryPanel.style.display = "none";
+    smartReorderPanel.style.display = "none";
     recentProductsSection.style.display = "none";
     productsPanel.style.display = "none";
     categoriesPanel.style.display = "";
@@ -893,6 +1290,9 @@ categoriesNav.addEventListener("click", async function (event) {
 dashboardNav.addEventListener("click", function (event) {
     event.preventDefault();
 
+    batchExpiryPanel.style.display = "none";
+    smartReorderPanel.style.display = "none";
+    salesPanel.style.display = "none";
     productsPanel.style.display = "none";
     categoriesPanel.style.display = "none";
     lowStockPanel.style.display = "none";
@@ -919,7 +1319,7 @@ dashboardNav.addEventListener("click", function (event) {
 // Load categories
 async function loadCategories() {
     categoryTableBody.innerHTML =
-        '<tr><td colspan="4">Loading categories...</td></tr>';
+        '<tr><td colspan="5">Loading categories...</td></tr>';
 
     categoryMessage.textContent = "";
 
@@ -939,23 +1339,23 @@ async function loadCategories() {
 
         if (!Array.isArray(data) || data.length === 0) {
             categoryTableBody.innerHTML =
-                '<tr><td colspan="4">No categories found. Add your first category.</td></tr>';
+                '<tr><td colspan="5">No categories found. Add your first category.</td></tr>';
             return;
         }
 
         data.forEach(category => {
             const row = document.createElement("tr");
 
-            [
+                    [
                 category.categoryId,
                 category.categoryName,
-                category.description || "—"
+                category.description || "—",
+                category.expiryTracked ? "Yes" : "No"
             ].forEach(value => {
                 const cell = document.createElement("td");
                 cell.textContent = value ?? "";
                 row.appendChild(cell);
             });
-
             const actionsCell = document.createElement("td");
 
             const editButton = document.createElement("button");
@@ -985,7 +1385,7 @@ async function loadCategories() {
     } catch (error) {
         console.error("Category loading error:", error);
         categoryTableBody.innerHTML =
-            '<tr><td colspan="4">Could not load categories. Check the API and Spring Boot server.</td></tr>';
+            '<tr><td colspan="5">Could not load categories. Check the API and Spring Boot server.</td></tr>';
         categoryMessage.textContent = error.message;
     }
 }
@@ -1008,6 +1408,9 @@ function openCategoryEditor(category) {
 
     categoryNameInput.value = category.categoryName || "";
     categoryDescriptionInput.value = category.description || "";
+
+    categoryExpiryTrackedInput.value =
+        String(category.expiryTracked === true);
 
     categoryFormMessage.textContent = "";
     categoryModalTitle.textContent = "Edit Category";
@@ -1033,9 +1436,10 @@ categoryForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     const category = {
-        categoryName: categoryNameInput.value.trim(),
-        description: categoryDescriptionInput.value.trim()
-    };
+    categoryName: categoryNameInput.value.trim(),
+    description: categoryDescriptionInput.value.trim(),
+    expiryTracked: categoryExpiryTrackedInput.value === "true"
+};
 
     if (!category.categoryName) {
         categoryFormMessage.textContent =
@@ -1127,7 +1531,7 @@ async function deleteCategory(id, name) {
 ========================= */
 
 
-const LOW_STOCK_API = "http://localhost:8080/api/inventory/low-stock";
+//const LOW_STOCK_API = "http://localhost:8080/api/inventory/low-stock";
 
 const lowStockNav = document.getElementById("lowStockNav");
 const lowStockPanel = document.getElementById("lowStockPanel");
@@ -1145,6 +1549,7 @@ function showLowStockPanel() {
     dashboardPanel.style.display = "none";
     productsPanel.style.display = "none";
     categoriesPanel.style.display = "none";
+    smartReorderPanel.style.display = "none";
     lowStockPanel.style.display = "";
 
     dashboardIntro.style.display = "none";
@@ -1166,6 +1571,7 @@ function showLowStockPanel() {
 
 lowStockNav.addEventListener("click", event => {
     event.preventDefault();
+    batchExpiryPanel.style.display = "none";
     showLowStockPanel();
 });
 
@@ -1215,11 +1621,19 @@ async function loadLowStockProducts() {
             const statusCell = document.createElement("td");
             const status = document.createElement("span");
 
-            status.className = "low-stock-status";
-            status.textContent =
-                Number(product.quantity) === 0
-                    ? "Out of Stock"
-                    : "Low Stock";
+            const quantity = Number(product.quantity);
+const reorderLevel = Number(product.reorderLevel);
+
+if (quantity < reorderLevel) {
+    status.textContent = "Low Stock";
+    status.className = "low-stock-status low";
+} else if (quantity <= reorderLevel * 1.5) {
+    status.textContent = "Normal";
+    status.className = "low-stock-status normal";
+} else {
+    status.textContent = "Over Stock";
+    status.className = "low-stock-status over";
+}
 
             statusCell.appendChild(status);
             row.appendChild(statusCell);
@@ -1237,6 +1651,734 @@ async function loadLowStockProducts() {
         lowStockMessage.classList.add("error");
     }
 }
+
+
+
+
+/* =========================
+   BATCH & EXPIRY NAVIGATION
+========================= */
+
+const batchExpiryNav = document.getElementById("batchExpiryNav");
+const batchExpiryPanel = document.getElementById("batchExpiryPanel");
+
+const addBatchBtn = document.getElementById("addBatchBtn");
+const batchModal = document.getElementById("batchModal");
+const closeBatchModal = document.getElementById("closeBatchModal");
+const cancelBatchBtn = document.getElementById("cancelBatchBtn");
+
+batchExpiryNav.addEventListener("click", function (event) {
+    event.preventDefault();
+
+    document.querySelectorAll("main > section")
+        .forEach(panel => panel.style.display = "none");
+    dashboardPanel.style.display = "none";
+    productsPanel.style.display = "none";
+    categoriesPanel.style.display = "none";
+    lowStockPanel.style.display = "none";
+    smartReorderPanel.style.display = "none";
+    batchExpiryPanel.style.display = "";
+
+    dashboardIntro.style.display = "none";
+    dashboardStats.style.display = "none";
+
+    document.querySelectorAll(".sidebar-menu a")
+        .forEach(link => link.classList.remove("active"));
+
+    batchExpiryNav.classList.add("active");
+
+    document.querySelector(".topbar h1").textContent =
+        "Batch & Expiry Management";
+
+    document.querySelector(".welcome-text").textContent =
+        "MANAGE PRODUCT BATCHES";
+
+    loadBatches();
+});
+
+function openBatchModal() {
+    batchModal.style.display = "flex";
+}
+
+function closeBatchModalWindow() {
+    batchModal.style.display = "none";
+}
+
+addBatchBtn.addEventListener("click", openBatchModal);
+closeBatchModal.addEventListener("click", closeBatchModalWindow);
+cancelBatchBtn.addEventListener("click", closeBatchModalWindow);
+
+
+
+const BATCH_API = "http://localhost:8080/api/batches";
+
+async function loadBatches() {
+    const tbody = document.getElementById("batchTableBody");
+    const message = document.getElementById("batchMessage");
+
+    tbody.innerHTML =
+        '<tr><td colspan="7">Loading batches...</td></tr>';
+
+    try {
+        const response = await fetch(BATCH_API);
+
+        if (!response.ok) {
+            throw new Error("Could not fetch batches");
+        }
+
+        const batches = await response.json();
+        const uniqueBatches = Array.from(
+            new Map(batches.map(batch => [
+                batch.batchId ?? `${batch.productId}:${batch.batchNumber}`,
+                batch
+            ])).values()
+        );
+        tbody.innerHTML = "";
+
+        if (uniqueBatches.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="7">No batches found. Click Add Batch to create one.</td></tr>';
+            return;
+        }
+
+        uniqueBatches.forEach(batch => {
+            const row = document.createElement("tr");
+
+            const expiry = batch.expiryDate;
+            let status = "Normal";
+
+            if (expiry) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const expiryDate = new Date(expiry + "T00:00:00");
+
+                if (expiryDate < today) {
+                    status = "Expired";
+                } else {
+                    const daysLeft = Math.ceil(
+                        (expiryDate - today) / (1000 * 60 * 60 * 24)
+                    );
+
+                    if (daysLeft <= 30) {
+                        status = "Expiring Soon";
+                    }
+                }
+            }
+
+            const values = [
+                batch.batchId,
+                batch.productId,
+                batch.batchNumber,
+                expiry || "Not set",
+                batch.quantity,
+                status
+            ];
+
+            values.forEach(value => {
+                const cell = document.createElement("td");
+                cell.textContent = value ?? "";
+                row.appendChild(cell);
+            });
+
+            const actions = document.createElement("td");
+
+            const editBtn = document.createElement("button");
+            editBtn.textContent = "Edit";
+            editBtn.type = "button";
+            editBtn.addEventListener("click", () => editBatch(batch));
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "Delete";
+            deleteBtn.type = "button";
+            deleteBtn.style.marginLeft = "8px";
+            deleteBtn.addEventListener("click", () => deleteBatch(batch.batchId));
+
+            actions.append(editBtn, deleteBtn);
+            row.appendChild(actions);
+            tbody.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error(error);
+        tbody.innerHTML =
+            '<tr><td colspan="7">Could not load batches. Check that Spring Boot is running.</td></tr>';
+        message.textContent = error.message;
+    }
+}
+
+
+// smartReorderPanel
+
+const smartReorderNav = document.getElementById("smartReorderNav");
+const smartReorderPanel = document.getElementById("smartReorderPanel");
+
+smartReorderNav.addEventListener("click", function(event) {
+    event.preventDefault();
+
+    document.querySelectorAll("main .products-section")
+        .forEach(panel => panel.style.display = "none");
+    smartReorderPanel.style.display = "";
+
+    dashboardIntro.style.display = "none";
+    dashboardStats.style.display = "none";
+
+    document.querySelectorAll(".sidebar-menu a")
+        .forEach(link => link.classList.remove("active"));
+
+    smartReorderNav.classList.add("active");
+
+    document.querySelector(".topbar h1").textContent =
+        "Smart Reorder Assistant";
+
+    document.querySelector(".welcome-text").textContent =
+        "SMART STOCK RECOMMENDATIONS";
+
+    loadReorderRecommendations();
+});
+
+document.getElementById("refreshReorderBtn")
+    .addEventListener("click", loadReorderRecommendations);
+
+async function loadReorderRecommendations() {
+    const tbody = document.getElementById("reorderTableBody");
+    const message = document.getElementById("reorderMessage");
+
+    tbody.innerHTML =
+        '<tr><td colspan="7">Loading recommendations...</td></tr>';
+
+    message.textContent = "";
+
+    try {
+        const response = await fetch(
+            "http://localhost:8080/api/reorder/recommendations"
+        );
+
+        if (!response.ok) {
+            throw new Error("Could not load recommendations");
+        }
+
+        const products = await response.json();
+
+        // 1. Count products that need reordering
+        const productsNeedingReorder = products.filter(product =>
+            product.status === "Reorder Now" ||
+            product.status === "Reorder Soon"
+        ).length;
+
+        // 2. Calculate total suggested purchase cost
+        const totalPurchaseCost = products.reduce((total, product) => {
+            return total + Number(product.estimatedCost || 0);
+        }, 0);
+
+        // 3. Update summary cards
+        document.getElementById("reorderCount").textContent =
+            productsNeedingReorder;
+
+        document.getElementById("totalReorderCost").textContent =
+            "₹" + totalPurchaseCost.toLocaleString("en-IN", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            });
+
+        // Continue rendering the existing table
+        tbody.innerHTML = "";
+
+        products.forEach(product => {
+            const row = document.createElement("tr");
+
+            const values = [
+                product.product_name + " (ID " + product.product_id + ")",
+                product.quantity,
+                product.reorder_level,
+                product.status,
+                product.suggestedQuantity,
+                "₹" + Number(product.estimatedCost).toLocaleString("en-IN"),
+                "₹" + Number(product.grossProfitPerUnit).toLocaleString("en-IN")
+            ];
+
+            values.forEach((value, index) => {
+                const cell = document.createElement("td");
+                cell.textContent = value;
+
+                if (index === 3) {
+                    cell.style.fontWeight = "700";
+
+                    if (product.status === "Reorder Now") {
+                        cell.style.color = "#a12d27";
+                    } else if (product.status === "Reorder Soon") {
+                        cell.style.color = "#946200";
+                    } else {
+                        cell.style.color = "#176b43";
+                    }
+                }
+
+                row.appendChild(cell);
+            });
+
+            tbody.appendChild(row);
+        });
+
+        if (products.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="7">No product recommendations found.</td></tr>';
+        }
+    } catch (error) {
+        console.error(error);
+        tbody.innerHTML =
+            '<tr><td colspan="7">Could not load recommendations. Check Spring Boot.</td></tr>';
+        message.textContent = error.message;
+    }
+}
+
+
+/* =========================
+   ADD / EDIT BATCH
+========================= */
+
+const batchForm = document.getElementById("batchForm");
+
+batchForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const batchId = document.getElementById("batchId").value;
+
+    const batch = {
+        productId: Number(document.getElementById("batchProductId").value),
+        batchNumber: document.getElementById("batchNumber").value.trim(),
+        expiryDate: document.getElementById("batchExpiryDate").value || null,
+        quantity: Number(document.getElementById("batchQuantity").value)
+    };
+
+    if (
+        !batch.productId ||
+        !batch.batchNumber ||
+        batch.quantity < 0 ||
+        !Number.isInteger(batch.quantity)
+    ) {
+        alert("Please enter valid batch details.");
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            batchId ? `${BATCH_API}/${batchId}` : BATCH_API,
+            {
+                method: batchId ? "PUT" : "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(batch)
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "Could not save batch.");
+        }
+
+        alert(batchId ? "Batch updated successfully!" : "Batch added successfully!");
+
+        batchForm.reset();
+        document.getElementById("batchId").value = "";
+        document.getElementById("batchModalTitle").textContent = "Add New Batch";
+        document.getElementById("saveBatchBtn").textContent = "Save Batch";
+
+        closeBatchModalWindow();
+        await loadBatches();
+
+    } catch (error) {
+        console.error("Batch save error:", error);
+        alert("Batch save failed: " + error.message);
+    }
+});
+
+
+/* =========================
+   EDIT BATCH
+========================= */
+
+function editBatch(batch) {
+    document.getElementById("batchId").value = batch.batchId;
+    document.getElementById("batchProductId").value = batch.productId;
+    document.getElementById("batchNumber").value = batch.batchNumber;
+    document.getElementById("batchExpiryDate").value = batch.expiryDate || "";
+    document.getElementById("batchQuantity").value = batch.quantity;
+
+    document.getElementById("batchModalTitle").textContent = "Edit Batch";
+    document.getElementById("saveBatchBtn").textContent = "Update Batch";
+
+    openBatchModal();
+}
+
+
+/* =========================
+   DELETE BATCH
+========================= */
+
+async function deleteBatch(batchId) {
+    if (!confirm("Are you sure you want to delete this batch?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${BATCH_API}/${batchId}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error("Could not delete batch.");
+        }
+
+        alert("Batch deleted successfully!");
+        await loadBatches();
+
+    } catch (error) {
+        console.error("Batch delete error:", error);
+        alert("Batch delete failed: " + error.message);
+    }
+}
+
+
+async function loadExpiryAlertCounts() {
+    try {
+        const response = await fetch(
+            "http://localhost:8080/api/batches/expiry-alerts"
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to load expiry alerts");
+        }
+
+        const batches = await response.json();
+        const uniqueBatches = Array.from(
+            new Map(batches.map(batch => [
+                batch.batchId ?? `${batch.productId}:${batch.batchNumber}`,
+                batch
+            ])).values()
+        );
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let expiredCount = 0;
+        let expiringSoonCount = 0;
+
+        uniqueBatches.forEach(batch => {
+            if (!batch.expiryDate) return;
+
+            const expiryDate = new Date(batch.expiryDate + "T00:00:00");
+
+            if (expiryDate < today) {
+                expiredCount++;
+            } else {
+                expiringSoonCount++;
+            }
+        });
+
+        document.getElementById("expiredBatchCount").textContent =
+            expiredCount;
+
+        document.getElementById("expiringSoonBatchCount").textContent =
+            expiringSoonCount;
+
+    } catch (error) {
+        console.error("Expiry alert error:", error);
+    }
+}
+
+loadExpiryAlertCounts();
+
+
+
+/* =========================
+   SALES NAVIGATION
+========================= */
+
+const salesNav = document.getElementById("salesNav");
+const salesPanel = document.getElementById("salesPanel");
+
+// Keep the Sales panel exclusive to its own navigation item.
+document.querySelectorAll(".sidebar-menu a:not(#salesNav)")
+    .forEach(link => link.addEventListener("click", function() {
+        salesPanel.style.display = "none";
+    }));
+
+salesNav.addEventListener("click", function(event) {
+    event.preventDefault();
+
+    document.querySelectorAll("main .products-section")
+        .forEach(panel => panel.style.display = "none");
+
+    salesPanel.style.display = "";
+
+    dashboardIntro.style.display = "none";
+    dashboardStats.style.display = "none";
+
+    document.querySelectorAll(".sidebar-menu a")
+        .forEach(link => link.classList.remove("active"));
+
+    salesNav.classList.add("active");
+
+    document.querySelector(".topbar h1").textContent = "Sales";
+
+    document.querySelector(".welcome-text").textContent =
+        "SELL PRODUCTS";
+});
+
+
+
+
+/* =========================
+   SALES FORM SUBMIT
+========================= */
+
+const salesForm = document.getElementById("salesForm");
+
+salesForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const productId = Number(
+        document.getElementById("saleProductId").value
+    );
+
+    const quantity = Number(
+        document.getElementById("saleQuantity").value
+    );
+
+    const saleMessage = document.getElementById("saleMessage");
+
+    if (
+        !Number.isInteger(productId) || productId <= 0 ||
+        !Number.isInteger(quantity) || quantity <= 0
+    ) {
+        saleMessage.textContent =
+            "Please enter a valid Product ID and quantity.";
+        return;
+    }
+
+    if (!confirm(
+        "This will record a real sale and reduce stock. Continue?"
+    )) {
+        return;
+    }
+
+    saleMessage.textContent = "Processing sale...";
+
+    try {
+        const response = await fetch(
+            "http://localhost:8080/api/sales",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    productId: productId,
+                    quantity: quantity
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "Could not record the sale."
+            );
+        }
+
+        saleMessage.textContent =
+            "Sale successful! Sale ID: " + data.saleId +
+            " | Quantity sold: " + data.quantitySold +
+            " | Total: ₹" + data.totalAmount +
+            " | Remaining stock: " + data.remainingStock;
+
+        salesForm.reset();
+
+        // Refresh product data if these functions exist
+        if (typeof loadProducts === "function") {
+            await loadProducts();
+        }
+
+    } catch (error) {
+        console.error("Sales error:", error);
+        saleMessage.textContent =
+            "Sale failed: " + error.message;
+    }
+});
+
+
+/* =========================
+   LOAD SALES HISTORY
+========================= */
+
+const salesHistoryTableBody =
+    document.getElementById("salesHistoryTableBody");
+
+const salesHistoryMessage =
+    document.getElementById("salesHistoryMessage");
+
+async function loadSalesHistory() {
+    salesHistoryTableBody.innerHTML =
+        '<tr><td colspan="5">Loading sales history...</td></tr>';
+
+    salesHistoryMessage.textContent = "";
+
+    try {
+        const response = await fetch(
+            "http://localhost:8080/api/sales/history"
+        );
+
+        if (!response.ok) {
+            throw new Error("Could not load sales history.");
+        }
+
+        const sales = await response.json();
+
+        salesHistoryTableBody.innerHTML = "";
+
+        if (!Array.isArray(sales) || sales.length === 0) {
+            salesHistoryTableBody.innerHTML =
+                '<tr><td colspan="5">No sales recorded yet.</td></tr>';
+            return;
+        }
+
+        sales.forEach(sale => {
+            const row = document.createElement("tr");
+
+            const values = [
+                sale.saleId,
+                sale.productName,
+                sale.quantitySold,
+                "₹" + Number(sale.sellingPrice).toLocaleString("en-IN"),
+                "₹" + Number(sale.totalAmount).toLocaleString("en-IN")
+            ];
+
+            values.forEach(value => {
+                const cell = document.createElement("td");
+                cell.textContent = value ?? "";
+                row.appendChild(cell);
+            });
+
+            salesHistoryTableBody.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Sales history error:", error);
+
+        salesHistoryTableBody.innerHTML =
+            '<tr><td colspan="5">Unable to load sales history.</td></tr>';
+
+        salesHistoryMessage.textContent = error.message;
+    }
+}
+
+
+async function loadSalesHistory(date = "") {
+    salesHistoryTableBody.innerHTML =
+        '<tr><td colspan="5">Loading sales history...</td></tr>';
+
+    salesHistoryMessage.textContent = "";
+
+    try {
+        const url = date
+            ? "http://localhost:8080/api/sales/history?date=" +
+              encodeURIComponent(date)
+            : "http://localhost:8080/api/sales/history";
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("Could not load sales history.");
+        }
+
+        const sales = await response.json();
+
+        salesHistoryTableBody.innerHTML = "";
+
+        if (!Array.isArray(sales) || sales.length === 0) {
+            salesHistoryTableBody.innerHTML =
+                '<tr><td colspan="5">No sales found for this date.</td></tr>';
+        } else {
+            sales.forEach(sale => {
+                const row = document.createElement("tr");
+
+                const values = [
+                    sale.saleId,
+                    sale.productName,
+                    sale.quantitySold,
+                    "₹" + Number(sale.sellingPrice).toLocaleString("en-IN"),
+                    "₹" + Number(sale.totalAmount).toLocaleString("en-IN")
+                ];
+
+                values.forEach(value => {
+                    const cell = document.createElement("td");
+                    cell.textContent = value ?? "";
+                    row.appendChild(cell);
+                });
+
+                salesHistoryTableBody.appendChild(row);
+            });
+        }
+
+        // Calculate daily sales count and revenue
+        document.getElementById("dailySalesCount").textContent =
+            sales.length;
+
+        const dailyRevenue = sales.reduce(
+            (total, sale) => total + Number(sale.totalAmount || 0),
+            0
+        );
+
+        document.getElementById("dailySalesRevenue").textContent =
+            "₹" + dailyRevenue.toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+    } catch (error) {
+        console.error("Sales history error:", error);
+
+        salesHistoryTableBody.innerHTML =
+            '<tr><td colspan="5">Unable to load sales history.</td></tr>';
+
+        salesHistoryMessage.textContent = error.message;
+    }
+}
+
+const salesHistoryDate = document.getElementById("salesHistoryDate");
+
+document.getElementById("viewDailySalesBtn")
+    .addEventListener("click", function() {
+        if (!salesHistoryDate.value) {
+            salesHistoryMessage.textContent =
+                "Please select a date first.";
+            return;
+        }
+
+        loadSalesHistory(salesHistoryDate.value);
+    });
+
+document.getElementById("showAllSalesBtn")
+    .addEventListener("click", function() {
+        salesHistoryDate.value = "";
+        loadSalesHistory();
+    });
+
+document.getElementById("refreshSalesHistoryBtn")
+    .addEventListener("click", function() {
+        loadSalesHistory(salesHistoryDate.value);
+    });
+
+
+/* Refresh button */
+document.getElementById("refreshSalesHistoryBtn")
+    .addEventListener("click", loadSalesHistory);
+
+/* Load history when Sales panel opens */
+salesNav.addEventListener("click", loadSalesHistory);
+
+
 </script>
 
 </body>

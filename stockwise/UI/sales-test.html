@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockWise - Sell Product Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f4f6f9;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px #ddd;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #result {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>StockWise - Sell Product</h2>
+
+        <label>Product ID</label>
+        <input type="number" id="productId" placeholder="Enter product ID" min="1">
+
+        <label>Quantity to Sell</label>
+        <input type="number" id="quantity" placeholder="Enter quantity" min="1">
+
+        <button onclick="sellProduct()">Sell Product</button>
+
+        <p id="result"></p>
+    </div>
+
+    <script>
+        async function sellProduct() {
+            const productId = Number(document.getElementById("productId").value);
+            const quantity = Number(document.getElementById("quantity").value);
+            const result = document.getElementById("result");
+
+            if (!Number.isInteger(productId) || productId <= 0 ||
+                !Number.isInteger(quantity) || quantity <= 0) {
+                result.textContent = "Please enter a valid Product ID and quantity.";
+                return;
+            }
+
+            if (!confirm("This will create a real sale and reduce stock. Continue?")) {
+                return;
+            }
+
+            result.textContent = "Processing sale...";
+
+            try {
+                const response = await fetch("http://localhost:8080/api/sales", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        productId: productId,
+                        quantity: quantity
+                    })
+                });
+
+                const data = await response.json();
+
+                result.textContent = response.ok
+                    ? "Sale successful!\n" + JSON.stringify(data, null, 2)
+                    : "Sale failed:\n" + JSON.stringify(data, null, 2);
+
+            } catch (error) {
+                result.textContent =
+                    "Could not connect to the server. Check that Spring Boot is running.\n" +
+                    error.message;
+            }
+        }
+    </script>
+</body>
+</html>

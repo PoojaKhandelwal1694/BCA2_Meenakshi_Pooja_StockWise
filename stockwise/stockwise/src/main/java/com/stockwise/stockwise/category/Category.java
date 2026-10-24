@@ -18,6 +18,9 @@ public class Category {
     @Column(name = "description", length = 255)
     private String description;
 
+    @Column(name = "expiry_tracked", nullable = false)
+    private boolean expiryTracked = false;
+
     public Category() {
     }
 
@@ -43,5 +46,13 @@ public class Category {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public boolean isExpiryTracked() {
+        return expiryTracked;
+    }
+
+    public void setExpiryTracked(boolean expiryTracked) {
+        this.expiryTracked = expiryTracked;
     }
 }
