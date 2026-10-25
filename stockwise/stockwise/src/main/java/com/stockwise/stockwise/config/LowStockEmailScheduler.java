@@ -13,8 +13,15 @@ public class LowStockEmailScheduler {
         this.emailAlertService = emailAlertService;
     }
 
-@Scheduled(cron = "0 0 9 * * *", zone = "Asia/Kolkata")
+@Scheduled(cron = "0 0 21 * * *", zone = "Asia/Kolkata")
     public void sendDailyLowStockEmails() {
         emailAlertService.sendLowStockAlerts();
     }
+
+    @Scheduled(cron = "0 0 21 * * *", zone = "Asia/Kolkata")
+public void sendDailyExpiryAlerts() {
+    System.out.println("Expiry scheduler triggered: " + java.time.LocalDateTime.now());
+
+    emailAlertService.sendExpiryAlerts();
+}
 }

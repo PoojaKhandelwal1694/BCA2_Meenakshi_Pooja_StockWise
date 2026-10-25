@@ -133,11 +133,18 @@ public ResponseEntity<?> getCurrentUser(HttpSession session) {
     return ResponseEntity.ok(
             Map.of("fullName", userName));
 }
-    // Logout
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpSession session) {
-        session.invalidate();
-        return ResponseEntity.ok(
-                Map.of("message", "Logged out successfully."));
-    }
+   // Logout
+@PostMapping("/logout")
+public ResponseEntity<?> logout(HttpSession session) {
+    session.invalidate();
+
+    return ResponseEntity.ok()
+            .header(
+                    "Set-Cookie",
+                    "JSESSIONID=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
+            )
+            .body(Map.of(
+                    "message", "Logged out successfully."
+            ));
+}
 }

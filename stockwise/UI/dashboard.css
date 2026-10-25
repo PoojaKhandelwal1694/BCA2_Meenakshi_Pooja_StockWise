@@ -1148,3 +1148,195 @@ td {
         padding: 18px;
     }
 }
+
+
+/* ===== StockWise Batch Form CSS ===== */
+
+#batchModal .modal-content {
+    width: 100%;
+    max-width: 520px;
+    margin: 40px auto;
+    padding: 28px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    box-sizing: border-box;
+}
+
+#batchModal h2,
+#batchModal h3 {
+    margin-top: 0;
+    margin-bottom: 22px;
+    color: #1e293b;
+    font-size: 23px;
+    font-weight: 700;
+}
+
+#batchModal form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#batchModal label {
+    display: block;
+    margin-bottom: 7px;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#batchModal input,
+#batchModal select {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background-color: #ffffff;
+    color: #1e293b;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#batchModal input:focus,
+#batchModal select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+#batchModal input::placeholder {
+    color: #94a3b8;
+}
+
+#batchExpiryHelp {
+    display: block;
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#batchModal button[type="submit"] {
+    min-height: 44px;
+    padding: 11px 18px;
+    border: none;
+    border-radius: 9px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+#batchModal button[type="submit"]:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+#batchModal button[type="button"] {
+    min-height: 42px;
+    padding: 10px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#batchModal button[type="button"]:hover {
+    background: #e2e8f0;
+}
+
+#batchModal .modal-close,
+#batchModal .close {
+    color: #64748b;
+    cursor: pointer;
+}
+
+#batchModal .modal-close:hover,
+#batchModal .close:hover {
+    color: #0f172a;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+    #batchModal .modal-content {
+        width: calc(100% - 24px);
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    #batchModal h2,
+    #batchModal h3 {
+        font-size: 20px;
+    }
+}
+
+
+/* Category Filter */
+.category-filter {
+    padding: 12px 16px;
+    border: 1px solid #e7e2d6;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #124638;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+}
+
+.category-filter:focus {
+    border-color: #174d3b;
+}
+
+/* Profile Dropdown */
+.profile {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+}
+
+.profile-arrow {
+    margin-left: 8px;
+    color: #124638;
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: 75px;
+    right: 20px;
+    width: 210px;
+    padding: 8px;
+    background: #ffffff;
+    border: 1px solid #e7e2d6;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    z-index: 1000;
+}
+
+.profile-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    color: #124638;
+    text-align: left;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.profile-dropdown button:hover {
+    background: #f3f1e8;
+}
+
+#profileLogoutBtn {
+    color: #b42318;
+}

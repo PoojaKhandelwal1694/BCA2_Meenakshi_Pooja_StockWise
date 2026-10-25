@@ -65,15 +65,23 @@
                 </div>
 
                 <div class="topbar-right">
-                    <input type="search" placeholder="Search inventory...">
+                    <input  type="search" id="inventorySearch" placeholder="Search inventory...">
                     
-                <div class="profile">
-                    <span class="profile-avatar" id="profileAvatar">U</span>
-                    <div>
-                        <strong id="profileName">Loading...</strong>
-                        <p id="profileRole">User</p>
-                    </div>
-                </div>
+                
+<div class="profile" id="profileButton" role="button" tabindex="0"
+     aria-expanded="false">
+    <span class="profile-avatar" id="profileAvatar">U</span>
+    <div>
+        <strong id="profileName">Loading...</strong>
+        <p id="profileRole">User</p>
+    </div>
+    <span class="profile-arrow">⌄</span>
+</div>
+
+<div class="profile-dropdown" id="profileDropdown" style="display: none;">
+    <button type="button" id="profileLogoutBtn">Log Out</button>
+</div>
+
 
                 </div>
 
@@ -142,7 +150,9 @@
                         <p>Overview of your inventory items</p>
                     </div>
 
-                    <a href="#">View all</a>
+                    <select id="categoryFilter" class="category-filter">
+    <option value="all">All Categories</option>
+</select>
                 </div>
 
                 <div class="table-container">
@@ -372,14 +382,14 @@
                    min="1" required>
 
             <label for="batchNumber">Batch Number</label>
-            <input type="text" id="batchNumber"
+            <input type="text" id="productBatchNumber"
                    maxlength="100" required>
 
             <label for="batchExpiryDate">Expiry Date</label>
             <input type="date" id="batchExpiryDate">
 
             <label for="batchQuantity">Quantity</label>
-            <input type="number" id="batchQuantity"
+            <input type="number" id="productBatchQuantity"
                    min="0" value="0" required>
 
             <div class="section-header">
@@ -580,8 +590,24 @@
             <label for="sellingPrice">Selling Price (₹)</label>
             <input type="number" id="sellingPrice" min="0" step="0.01" required>
 
-            <label for="quantity">Initial Quantity</label>
-            <input type="number" id="quantity" min="0" value="0" required>
+            <label for="quantity" id="quantityLabel">Initial Quantity</label>
+<input type="number" id="quantity" min="0" value="0" required>
+
+             <!-- Expiry Batch Fields: hidden by default -->
+            <div id="expiryBatchFields" style="display: none;">
+
+                <h3>Batch & Expiry Details</h3>
+
+                <label for="batchNumber">Batch Number</label>
+                <input type="text" id="batchNumber">
+
+                <label for="expiryDate">Expiry Date</label>
+                <input type="date" id="expiryDate">
+
+                <label for="batchQuantity">Batch Quantity</label>
+                <input type="number" id="batchQuantity" min="1" value="1">
+
+            </div>
 
             <label for="reorderLevel">Low Stock Alert Level</label>
             <input type="number" id="reorderLevel" min="0" value="10" required>
@@ -737,11 +763,41 @@ async function loadProducts() {
         const response = await fetch(API_URL);
 
         if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+            throw new Error("Products fetch failed: " + response.status);
         }
 
         const products = await response.json();
-        productTableBody.innerHTML = "";
+        console.log("Fetched products:", products);
+
+        const categoryFilter = document.getElementById("categoryFilter");
+        const selectedCategory = categoryFilter.value;
+
+categoryFilter.replaceChildren();
+
+const allOption = document.createElement("option");
+allOption.value = "all";
+allOption.textContent = "All Categories";
+categoryFilter.appendChild(allOption);
+
+const categoryIds = [...new Set(
+    products
+        .map(product => product.categoryId)
+        .filter(id => id !== null && id !== undefined)
+)];
+
+categoryIds.sort((a, b) => Number(a) - Number(b));
+
+categoryIds.forEach(id => {
+    const option = document.createElement("option");
+    option.value = String(id);
+    option.textContent = "Category " + id;
+    categoryFilter.appendChild(option);
+});
+
+categoryFilter.value =
+    categoryIds.some(id => String(id) === selectedCategory)
+        ? selectedCategory
+        : "all";
 
         if (products.length === 0) {
             productTableBody.innerHTML =
@@ -750,7 +806,9 @@ async function loadProducts() {
         }
 
         products.forEach(product => {
-            const row = document.createElement("tr");
+            const row = document.createElement("tr"); 
+
+row.dataset.categoryId = String(product.categoryId ?? "");
 
                     const values = [
                 product.productId,
@@ -775,9 +833,26 @@ async function loadProducts() {
             editButton.textContent = "Edit";
             editButton.className = "add-button";
 
-            editButton.addEventListener("click", () => {
-                editProduct(product);
-            });
+           
+editButton.addEventListener("click", async () => {
+    try {
+        const response = await fetch(
+            `${API_URL}/${product.productId}`
+        );
+
+        if (!response.ok) {
+            throw new Error("Could not load product details.");
+        }
+
+        const fullProduct = await response.json();
+        editProduct(fullProduct);
+
+    } catch (error) {
+        console.error("Edit product error:", error);
+        alert(error.message);
+    }
+});
+
 
             const deleteButton = document.createElement("button");
             deleteButton.type = "button";
@@ -801,6 +876,25 @@ async function loadProducts() {
             '<tr><td colspan="7">Could not load products. Check Spring Boot and MySQL.</td></tr>';
     }
 }
+
+
+const inventorySearch = document.getElementById("inventorySearch");
+
+inventorySearch.addEventListener("input", function () {
+    const searchText = inventorySearch.value.toLowerCase().trim();
+    const rows = document.querySelectorAll("#productTableBody tr");
+
+    rows.forEach(function (row) {
+        const rowText = row.textContent.toLowerCase();
+
+        if (rowText.includes(searchText)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+});
+
 
     
 const productsNav = document.getElementById("productsNav");
@@ -1217,6 +1311,44 @@ async function loadProductCategories() {
         categoryIdInput.appendChild(option);
     }
 }
+
+
+const categorySelect = document.getElementById("categoryId");
+const expiryBatchFields = document.getElementById("expiryBatchFields");
+const quantityInput = document.getElementById("quantity");
+const quantityLabel = document.getElementById("quantityLabel");
+
+function toggleExpiryBatchFields() {
+    const selectedOption =
+        categorySelect.options[categorySelect.selectedIndex];
+
+    const isExpiryTracked =
+    selectedOption?.dataset.expiryTracked === "true";
+    expiryBatchFields.style.display =
+        isExpiryTracked ? "block" : "none";
+
+    // Batch quantity will be used instead of initial quantity
+    quantityInput.required = !isExpiryTracked;
+    quantityInput.disabled = isExpiryTracked;
+
+    quantityLabel.textContent = isExpiryTracked
+        ? "Initial Quantity (managed through batch)"
+        : "Initial Quantity";
+
+    document.getElementById("batchNumber").required = isExpiryTracked;
+    document.getElementById("expiryDate").required = isExpiryTracked;
+    document.getElementById("batchQuantity").required = isExpiryTracked;
+}
+
+categorySelect.addEventListener("change", toggleExpiryBatchFields);
+
+// Run after categories are loaded
+const categoryObserver = new MutationObserver(() => {
+    toggleExpiryBatchFields();
+});
+
+categoryObserver.observe(categorySelect, { childList: true });
+
 
 loadProductCategories();
 
@@ -2379,7 +2511,76 @@ document.getElementById("refreshSalesHistoryBtn")
 salesNav.addEventListener("click", loadSalesHistory);
 
 
+
+document.getElementById("categoryFilter").addEventListener("change", function () {
+    const selectedCategory = this.value;
+    const rows = document.querySelectorAll("#productTableBody tr");
+
+    rows.forEach(row => {
+        const rowCategory = row.dataset.categoryId;
+
+        row.style.display =
+            selectedCategory === "all" ||
+            rowCategory === selectedCategory
+                ? ""
+                : "none";
+    });
+});
+
+
+
+
+const profileButton = document.getElementById("profileButton");
+const profileDropdown = document.getElementById("profileDropdown");
+
+function toggleProfileDropdown() {
+    const isOpen = profileDropdown.style.display === "block";
+
+    profileDropdown.style.display = isOpen ? "none" : "block";
+    profileButton.setAttribute("aria-expanded", String(!isOpen));
+}
+
+profileButton.addEventListener("click", toggleProfileDropdown);
+
+profileButton.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleProfileDropdown();
+    }
+});
+
+document.addEventListener("click", function (event) {
+    if (
+        !profileButton.contains(event.target) &&
+        !profileDropdown.contains(event.target)
+    ) {
+        profileDropdown.style.display = "none";
+        profileButton.setAttribute("aria-expanded", "false");
+    }
+});
+
+
+
+document.getElementById("profileLogoutBtn").addEventListener("click", async () => {
+    try {
+        const response = await fetch(`${AUTH_URL}/logout`, {
+            method: "POST",
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            throw new Error("Logout failed");
+        }
+
+        window.location.replace("login.html");
+    } catch (error) {
+        console.error("Logout error:", error);
+        alert("Please try again.");
+    }
+});
+
 </script>
+
 
 </body>
 </html>
