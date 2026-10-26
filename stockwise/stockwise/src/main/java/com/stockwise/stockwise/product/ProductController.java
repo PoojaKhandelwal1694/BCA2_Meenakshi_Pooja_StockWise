@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 
 import java.util.List;
@@ -69,26 +70,41 @@ public List<Map<String, Object>> getAllProducts() {
 
     @GetMapping("/grouped")
     public List<ProductCategoryResponse> getProductsWithCategories() {
-        String sql = """
-            SELECT p.product_id, p.product_name, p.sku, p.category_id,
-                   c.category_name, i.quantity, i.reorder_level
-            FROM products p
-            LEFT JOIN categories c ON p.category_id = c.category_id
-            LEFT JOIN inventory i ON p.product_id = i.product_id
-            ORDER BY c.category_name, p.product_name
-            """;
+       String sql = """
+    SELECT p.product_id, p.product_name, p.sku, p.category_id,
+           c.category_name,
+
+           CASE
+               WHEN c.expiry_tracked = TRUE THEN
+                   COALESCE((
+                       SELECT SUM(pb.quantity)
+                       FROM product_batches pb
+                       WHERE pb.product_id = p.product_id
+                   ), 0)
+               ELSE
+                   COALESCE(i.quantity, 0)
+           END AS quantity,
+
+           i.reorder_level
+    FROM products p
+    LEFT JOIN categories c
+        ON p.category_id = c.category_id
+    LEFT JOIN inventory i
+        ON p.product_id = i.product_id
+    ORDER BY c.category_name, p.product_name
+    """;
 
         return jdbcTemplate.query(sql, (rs, rowNum) ->
-            new ProductCategoryResponse(
-                rs.getInt("product_id"),
-                rs.getString("product_name"),
-                rs.getString("sku"),
-                rs.getInt("category_id"),
-                rs.getString("category_name"),
-                (Integer) rs.getObject("quantity"),
-                (Integer) rs.getObject("reorder_level")
-            )
-        );
+    new ProductCategoryResponse(
+        rs.getInt("product_id"),
+        rs.getString("product_name"),
+        rs.getString("sku"),
+        rs.getInt("category_id"),
+        rs.getString("category_name"),
+        rs.getObject("quantity", Integer.class),
+        rs.getObject("reorder_level", Integer.class)
+    )
+);
     }
 
     @GetMapping("/{id}")
@@ -193,93 +209,185 @@ jdbcTemplate.update("""
                 .body(savedProduct);
     }
 
-    @PutMapping("/{id}")
-    @Transactional
-    public ResponseEntity<?> updateProduct(
-            @PathVariable Integer id,
-            @RequestBody ProductCreateRequest request) {
+   
+@PutMapping("/{id}")
+@Transactional
+public ResponseEntity<?> updateProduct(
+        @PathVariable Integer id,
+        @RequestBody ProductCreateRequest request) {
 
-        if (!isValid(request)) {
-            return ResponseEntity.badRequest()
-                    .body("Please enter valid product details.");
-        }
+    if (!isValid(request)) {
+        return ResponseEntity.badRequest()
+                .body("Please enter valid product details.");
+    }
 
-        if (!categoryRepository.existsById(request.getCategoryId())) {
-            return ResponseEntity.badRequest()
-                    .body("Selected category does not exist.");
-        }
+    if (!categoryRepository.existsById(request.getCategoryId())) {
+        return ResponseEntity.badRequest()
+                .body("Selected category does not exist.");
+    }
 
-        if (!productRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
+    Product existingProduct = productRepository.findById(id)
+            .orElse(null);
 
-        String sku = request.getSku().trim();
+    if (existingProduct == null) {
+        return ResponseEntity.notFound().build();
+    }
 
-        if (productRepository.existsBySkuAndProductIdNot(sku, id)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("This SKU already exists.");
-        }
+    String sku = request.getSku().trim();
 
-        Product existingProduct = productRepository.findById(id).orElseThrow();
+    if (productRepository.existsBySkuAndProductIdNot(sku, id)) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("This SKU already exists.");
+    }
 
-        existingProduct.setProductName(request.getProductName().trim());
-        existingProduct.setSku(sku);
-        existingProduct.setCategoryId(request.getCategoryId());
-        existingProduct.setCostPrice(request.getCostPrice());
-        existingProduct.setSellingPrice(request.getSellingPrice());
-        existingProduct.setAttributes(request.getAttributes());
+    Category selectedCategory = categoryRepository.findById(
+            request.getCategoryId()
+    ).orElseThrow();
 
-        Product savedProduct = productRepository.save(existingProduct);
+    int targetQuantity = request.getQuantity() == null
+            ? 0
+            : request.getQuantity();
 
-       Category selectedCategory = categoryRepository.findById(
-        request.getCategoryId()
-).orElseThrow();
-
-Integer inventoryCount = jdbcTemplate.queryForObject(
-        "SELECT COUNT(*) FROM inventory WHERE product_id = ?",
-        Integer.class,
-        id
-);
-
-if (inventoryCount != null && inventoryCount > 0) {
+    /*
+     * Lock and read existing batches BEFORE saving product changes.
+     * If there are no batches and target stock is positive,
+     * reject the update without changing product details.
+     */
+    List<Map<String, Object>> batches = List.of();
 
     if (selectedCategory.isExpiryTracked()) {
+        batches = jdbcTemplate.queryForList("""
+            SELECT batch_id, quantity
+            FROM product_batches
+            WHERE product_id = ?
+            ORDER BY expiry_date ASC, batch_id ASC
+            FOR UPDATE
+            """, id);
 
-        // Expiry-tracked product stock is managed through batches.
-        jdbcTemplate.update(
-                "UPDATE inventory SET reorder_level = ? WHERE product_id = ?",
-                request.getReorderLevel(), id
+        if (batches.isEmpty() && targetQuantity > 0) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(
+                        "This expiry-tracked product has no batches. " +
+                        "Create a batch with a batch number and expiry date " +
+                        "before setting a positive quantity."
+                    );
+        }
+    }
+
+    // Update product details only after validation succeeds.
+    existingProduct.setProductName(request.getProductName().trim());
+    existingProduct.setSku(sku);
+    existingProduct.setCategoryId(request.getCategoryId());
+    existingProduct.setCostPrice(request.getCostPrice());
+    existingProduct.setSellingPrice(request.getSellingPrice());
+    existingProduct.setAttributes(request.getAttributes());
+
+    Product savedProduct = productRepository.save(existingProduct);
+
+    // Ensure an inventory row exists for reorder-level tracking.
+    Integer inventoryCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM inventory WHERE product_id = ?",
+            Integer.class,
+            id
+    );
+
+    if (inventoryCount == null || inventoryCount == 0) {
+        jdbcTemplate.update("""
+            INSERT INTO inventory (product_id, quantity, reorder_level)
+            VALUES (?, ?, ?)
+            """,
+            id,
+            selectedCategory.isExpiryTracked() ? 0 : targetQuantity,
+            request.getReorderLevel()
         );
-
+    } else if (selectedCategory.isExpiryTracked()) {
+        jdbcTemplate.update("""
+            UPDATE inventory
+            SET reorder_level = ?
+            WHERE product_id = ?
+            """,
+            request.getReorderLevel(), id
+        );
     } else {
-
-        // Non-expiry product quantity comes from the Edit Product form.
-        jdbcTemplate.update(
-                "UPDATE inventory SET quantity = ?, reorder_level = ? WHERE product_id = ?",
-                request.getQuantity() == null ? 0 : request.getQuantity(),
-                request.getReorderLevel(),
-                id
+        jdbcTemplate.update("""
+            UPDATE inventory
+            SET quantity = ?, reorder_level = ?
+            WHERE product_id = ?
+            """,
+            targetQuantity,
+            request.getReorderLevel(),
+            id
         );
     }
 
-} else {
+    /*
+     * For expiry-tracked products, adjust existing batch quantities
+     * so their sum equals targetQuantity.
+     * Batch numbers and expiry dates remain unchanged.
+     */
+    if (selectedCategory.isExpiryTracked() && !batches.isEmpty()) {
 
-    int initialQuantity = selectedCategory.isExpiryTracked()
-            ? 0
-            : (request.getQuantity() == null ? 0 : request.getQuantity());
+        int currentTotal = batches.stream()
+                .mapToInt(batch ->
+                        ((Number) batch.get("quantity")).intValue())
+                .sum();
 
-    jdbcTemplate.update("""
-        INSERT INTO inventory (product_id, quantity, reorder_level)
-        VALUES (?, ?, ?)
-        """,
-        id,
-        initialQuantity,
-        request.getReorderLevel()
-    );
+        int difference = targetQuantity - currentTotal;
+
+        if (difference > 0) {
+            // Add the difference to the earliest-expiring existing batch.
+            Number batchId = (Number) batches.get(0).get("batch_id");
+
+            jdbcTemplate.update("""
+                UPDATE product_batches
+                SET quantity = quantity + ?
+                WHERE batch_id = ? AND product_id = ?
+                """,
+                difference, batchId.intValue(), id
+            );
+
+        } else if (difference < 0) {
+            // Reduce quantities without allowing any batch to go negative.
+            int remainingToRemove = -difference;
+
+            for (Map<String, Object> batch : batches) {
+                if (remainingToRemove == 0) {
+                    break;
+                }
+
+                int batchId = ((Number) batch.get("batch_id")).intValue();
+                int batchQuantity =
+                        ((Number) batch.get("quantity")).intValue();
+
+                int removeFromBatch = Math.min(
+                        batchQuantity, remainingToRemove
+                );
+
+                if (removeFromBatch > 0) {
+                    jdbcTemplate.update("""
+                        UPDATE product_batches
+                        SET quantity = quantity - ?
+                        WHERE batch_id = ? AND product_id = ?
+                        """,
+                        removeFromBatch, batchId, id
+                    );
+
+                    remainingToRemove -= removeFromBatch;
+                }
+            }
+
+            if (remainingToRemove > 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Unable to reconcile the requested stock quantity."
+                );
+            }
+        }
+    }
+
+    return ResponseEntity.ok(savedProduct);
 }
 
-        return ResponseEntity.ok(savedProduct);
-    }
 
     @DeleteMapping("/{id}")
     @Transactional
@@ -304,23 +412,23 @@ if (inventoryCount != null && inventoryCount > 0) {
         return ResponseEntity.ok("Product deleted successfully.");
     }
 
-    private boolean isValid(ProductCreateRequest request) {
-        return request != null
-                && request.getProductName() != null
-                && !request.getProductName().isBlank()
-                && request.getSku() != null
-                && !request.getSku().isBlank()
-                && request.getCategoryId() != null
-                && request.getCategoryId() > 0
-                && request.getCostPrice() != null
-                && request.getSellingPrice() != null
-                && request.getCostPrice().signum() >= 0
-                && request.getSellingPrice().signum() >= 0
-                && request.getReorderLevel() != null
-                && request.getReorderLevel() >= 0
-                && request.getReorderLevel() != null
-                && request.getReorderLevel() >= 0
-                && (request.getQuantity() == null
-                        || request.getQuantity() >= 0);
-                    }
+    
+private boolean isValid(ProductCreateRequest request) {
+    return request != null
+            && request.getProductName() != null
+            && !request.getProductName().isBlank()
+            && request.getSku() != null
+            && !request.getSku().isBlank()
+            && request.getCategoryId() != null
+            && request.getCategoryId() > 0
+            && request.getCostPrice() != null
+            && request.getSellingPrice() != null
+            && request.getCostPrice().signum() >= 0
+            && request.getSellingPrice().signum() >= 0
+            && request.getReorderLevel() != null
+            && request.getReorderLevel() >= 0
+            && (request.getQuantity() == null
+                || request.getQuantity() >= 0);
+}
+
 }

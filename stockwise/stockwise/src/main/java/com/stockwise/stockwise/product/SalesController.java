@@ -24,150 +24,279 @@ public class SalesController {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public static class SaleRequest {
-        private Integer productId;
-        private Integer quantity;
+   
+public static class SaleItemRequest {
+    private Integer productId;
+    private Integer quantity;
 
-        public Integer getProductId() {
-            return productId;
-        }
-
-        public void setProductId(Integer productId) {
-            this.productId = productId;
-        }
-
-        public Integer getQuantity() {
-            return quantity;
-        }
-
-        public void setQuantity(Integer quantity) {
-            this.quantity = quantity;
-        }
+    public Integer getProductId() {
+        return productId;
     }
 
-    @PostMapping
-    @Transactional
-    public ResponseEntity<?> createSale(
-            @RequestBody SaleRequest request) {
+    public void setProductId(Integer productId) {
+        this.productId = productId;
+    }
 
-        if (request == null
-                || request.getProductId() == null
-                || request.getProductId() <= 0
-                || request.getQuantity() == null
-                || request.getQuantity() <= 0) {
+    public Integer getQuantity() {
+        return quantity;
+    }
 
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "error",
-                            "Valid product ID and positive quantity are required."
-                    ));
-        }
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+}
 
-        Integer productId = request.getProductId();
-        int quantity = request.getQuantity();
+public static class SaleRequest {
+    private java.util.List<SaleItemRequest> items;
 
-        // Lock inventory row to prevent overselling.
-        var stockRows = jdbcTemplate.queryForList(
-                "SELECT quantity FROM inventory "
-                        + "WHERE product_id = ? FOR UPDATE",
-                productId
+    public java.util.List<SaleItemRequest> getItems() {
+        return items;
+    }
+
+    public void setItems(java.util.List<SaleItemRequest> items) {
+        this.items = items;
+    }
+}
+
+
+   
+@PostMapping
+@Transactional
+public ResponseEntity<?> createSale(
+        @RequestBody SaleRequest request) {
+
+    if (request == null
+            || request.getItems() == null
+            || request.getItems().isEmpty()) {
+        return ResponseEntity.badRequest().body(
+                Map.of("error", "Please add at least one product.")
         );
+    }
 
-        if (stockRows.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error",
-                            "Inventory record not found for this product."));
+    // Merge repeated product IDs into one bill item.
+    Map<Integer, Integer> requestedItems = new java.util.LinkedHashMap<>();
+
+    for (SaleItemRequest item : request.getItems()) {
+        if (item == null
+                || item.getProductId() == null
+                || item.getProductId() <= 0
+                || item.getQuantity() == null
+                || item.getQuantity() <= 0) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error",
+                            "Every product needs a valid ID and positive quantity.")
+            );
         }
 
-        int availableStock =
-                ((Number) stockRows.get(0).get("quantity")).intValue();
-
-        if (availableStock < quantity) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "error", "Insufficient stock.",
-                            "availableStock", availableStock
-                    ));
-        }
-
-        var productRows = jdbcTemplate.queryForList(
-                "SELECT cost_price, selling_price "
-                        + "FROM products WHERE product_id = ?",
-                productId
+        requestedItems.merge(
+                item.getProductId(),
+                item.getQuantity(),
+                Math::addExact
         );
+    }
+
+    // Lock stock records and validate every item before saving the bill.
+    java.util.List<Map<String, Object>> saleLines =
+            new java.util.ArrayList<>();
+
+    BigDecimal grandTotal = BigDecimal.ZERO;
+
+    for (Map.Entry<Integer, Integer> entry : requestedItems.entrySet()) {
+        int productId = entry.getKey();
+        int quantity = entry.getValue();
+
+        var productRows = jdbcTemplate.queryForList("""
+            SELECT p.product_id, p.cost_price, p.selling_price,
+                   c.expiry_tracked
+            FROM products p
+            JOIN categories c ON c.category_id = p.category_id
+            WHERE p.product_id = ?
+            """, productId);
 
         if (productRows.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Product not found."));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    Map.of("error", "Product not found: " + productId)
+            );
         }
+
+        Map<String, Object> product = productRows.get(0);
 
         BigDecimal unitCost =
-                (BigDecimal) productRows.get(0).get("cost_price");
-
+                (BigDecimal) product.get("cost_price");
         BigDecimal unitPrice =
-                (BigDecimal) productRows.get(0).get("selling_price");
+                (BigDecimal) product.get("selling_price");
 
-        BigDecimal total = unitPrice.multiply(
+        boolean expiryTracked =
+                Boolean.TRUE.equals(product.get("expiry_tracked"));
+
+        int availableStock;
+
+        if (expiryTracked) {
+            var batches = jdbcTemplate.queryForList("""
+                SELECT batch_id, quantity
+                FROM product_batches
+                WHERE product_id = ?
+                ORDER BY expiry_date ASC, batch_id ASC
+                FOR UPDATE
+                """, productId);
+
+            availableStock = batches.stream()
+                    .mapToInt(b ->
+                            ((Number) b.get("quantity")).intValue())
+                    .sum();
+
+        } else {
+            var stockRows = jdbcTemplate.queryForList("""
+                SELECT quantity
+                FROM inventory
+                WHERE product_id = ?
+                FOR UPDATE
+                """, productId);
+
+            if (stockRows.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        Map.of("error",
+                                "Inventory record not found for product "
+                                        + productId)
+                );
+            }
+
+            availableStock = ((Number)
+                    stockRows.get(0).get("quantity")).intValue();
+        }
+
+        if (availableStock < quantity) {
+            return ResponseEntity.badRequest().body(
+                    Map.of(
+                            "error", "Insufficient stock for product ID "
+                                    + productId,
+                            "availableStock", availableStock,
+                            "requestedQuantity", quantity
+                    )
+            );
+        }
+
+        BigDecimal lineTotal = unitPrice.multiply(
                 BigDecimal.valueOf(quantity));
 
-        // 1. Create sale header.
-        jdbcTemplate.update(
-                "INSERT INTO sales (total_amount) VALUES (?)",
-                total
-        );
+        grandTotal = grandTotal.add(lineTotal);
 
-        Integer saleId = jdbcTemplate.queryForObject(
-                "SELECT LAST_INSERT_ID()",
-                Integer.class
-        );
-
-        if (saleId == null) {
-            throw new IllegalStateException("Could not create sale.");
-        }
-
-        // 2. Save the sold product and its price/cost snapshot.
-        jdbcTemplate.update(
-                "INSERT INTO sale_items "
-                        + "(sale_id, product_id, quantity, "
-                        + "unit_selling_price, unit_cost_at_sale) "
-                        + "VALUES (?, ?, ?, ?, ?)",
-                saleId, productId, quantity, unitPrice, unitCost
-        );
-
-        // 3. Reduce inventory.
-        int updated = jdbcTemplate.update(
-                "UPDATE inventory "
-                        + "SET quantity = quantity - ? "
-                        + "WHERE product_id = ? AND quantity >= ?",
-                quantity, productId, quantity
-        );
-
-        if (updated != 1) {
-            throw new IllegalStateException(
-                    "Stock update failed. Sale has been rolled back.");
-        }
-
-        // 4. Record stock movement.
-        jdbcTemplate.update(
-                "INSERT INTO stock_movements "
-                        + "(product_id, movement_type, quantity, notes) "
-                        + "VALUES (?, 'OUT', ?, ?)",
-                productId,
-                quantity,
-                "Sale ID: " + saleId
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of(
-                        "message", "Sale recorded successfully.",
-                        "saleId", saleId,
-                        "productId", productId,
-                        "quantitySold", quantity,
-                        "unitSellingPrice", unitPrice,
-                        "totalAmount", total,
-                        "remainingStock", availableStock - quantity
-                ));
+        Map<String, Object> line = new java.util.HashMap<>();
+        line.put("productId", productId);
+        line.put("quantity", quantity);
+        line.put("unitCost", unitCost);
+        line.put("unitPrice", unitPrice);
+        line.put("lineTotal", lineTotal);
+        line.put("expiryTracked", expiryTracked);
+        saleLines.add(line);
     }
+
+    // All items passed validation. Create one bill.
+    jdbcTemplate.update(
+            "INSERT INTO sales (total_amount) VALUES (?)",
+            grandTotal
+    );
+
+    Integer saleId = jdbcTemplate.queryForObject(
+            "SELECT LAST_INSERT_ID()", Integer.class);
+
+    if (saleId == null) {
+        throw new IllegalStateException("Could not create sale.");
+    }
+
+    // Save each line and deduct stock.
+    for (Map<String, Object> line : saleLines) {
+        int productId = (Integer) line.get("productId");
+        int quantity = (Integer) line.get("quantity");
+
+        BigDecimal unitCost = (BigDecimal) line.get("unitCost");
+        BigDecimal unitPrice = (BigDecimal) line.get("unitPrice");
+
+        boolean expiryTracked = (Boolean) line.get("expiryTracked");
+
+        jdbcTemplate.update("""
+            INSERT INTO sale_items
+                (sale_id, product_id, quantity,
+                 unit_selling_price, unit_cost_at_sale)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            saleId, productId, quantity, unitPrice, unitCost);
+
+        if (expiryTracked) {
+            int remaining = quantity;
+
+            var batches = jdbcTemplate.queryForList("""
+                SELECT batch_id, quantity
+                FROM product_batches
+                WHERE product_id = ?
+                ORDER BY expiry_date ASC, batch_id ASC
+                FOR UPDATE
+                """, productId);
+
+            for (Map<String, Object> batch : batches) {
+                if (remaining == 0) {
+                    break;
+                }
+
+                int batchId = ((Number) batch.get("batch_id")).intValue();
+                int batchQuantity =
+                        ((Number) batch.get("quantity")).intValue();
+
+                int deduction = Math.min(batchQuantity, remaining);
+
+                if (deduction > 0) {
+                    int changed = jdbcTemplate.update("""
+                        UPDATE product_batches
+                        SET quantity = quantity - ?
+                        WHERE batch_id = ? AND quantity >= ?
+                        """, deduction, batchId, deduction);
+
+                    if (changed != 1) {
+                        throw new IllegalStateException(
+                                "Batch stock update failed.");
+                    }
+
+                    remaining -= deduction;
+                }
+            }
+
+            if (remaining > 0) {
+                throw new IllegalStateException(
+                        "Batch stock changed during sale.");
+            }
+
+        } else {
+            int changed = jdbcTemplate.update("""
+                UPDATE inventory
+                SET quantity = quantity - ?
+                WHERE product_id = ? AND quantity >= ?
+                """, quantity, productId, quantity);
+
+            if (changed != 1) {
+                throw new IllegalStateException(
+                        "Inventory stock update failed.");
+            }
+        }
+
+        jdbcTemplate.update("""
+            INSERT INTO stock_movements
+                (product_id, movement_type, quantity, notes)
+            VALUES (?, 'OUT', ?, ?)
+            """,
+            productId,
+            quantity,
+            "Sale ID: " + saleId);
+    }
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(
+            Map.of(
+                    "message", "Sale bill recorded successfully.",
+                    "saleId", saleId,
+                    "items", saleLines,
+                    "totalAmount", grandTotal
+            )
+    );
+}
 
     
     

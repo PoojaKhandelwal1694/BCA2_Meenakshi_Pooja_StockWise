@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockWise | Dashboard</title>
+    <title> StockWise | Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23e8d5a5'/%3E%3Ctext x='32' y='45' font-family='Arial,sans-serif' font-size='42' font-weight='bold' text-anchor='middle' fill='%230d493b'%3ES%3C/text%3E%3C/svg%3E">
+
     <link rel="stylesheet" href="dashboard.css">
 </head>
 
@@ -75,7 +77,7 @@
         <strong id="profileName">Loading...</strong>
         <p id="profileRole">User</p>
     </div>
-    <span class="profile-arrow">⌄</span>
+    <span class="profile-arrow"></span>
 </div>
 
 <div class="profile-dropdown" id="profileDropdown" style="display: none;">
@@ -461,23 +463,24 @@
 </section>
 
 
+
 <!-- SALES PANEL -->
 <section id="salesPanel" class="products-section" style="display: none;">
     <div class="section-header">
         <div>
-            <h2>Sell Product</h2>
-            <p>Record a sale and update inventory stock.</p>
+            <h2>Create Sales Bill</h2>
+            <p>Add multiple products to one bill and update stock.</p>
         </div>
     </div>
 
-    <form id="salesForm" style="max-width: 500px;">
+    <form id="salesForm" style="max-width: 800px;">
         <label for="saleProductId">Product ID</label>
         <input
             type="number"
             id="saleProductId"
             min="1"
-            required
-            placeholder="Enter product ID"
+            step="1"
+            placeholder="Enter existing product ID"
         >
 
         <br><br>
@@ -488,18 +491,47 @@
             id="saleQuantity"
             min="1"
             step="1"
-            required
             placeholder="Enter quantity"
         >
 
         <br><br>
 
-        <button type="submit" class="add-button">Sell Product</button>
+        <button type="button" id="addSaleItemBtn" class="add-button">
+            + Add to Bill
+        </button>
+
+        <h3 style="margin-top: 25px;">Bill Items</h3>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Product Name</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Subtotal</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="saleItemsBody">
+                    <tr>
+                        <td colspan="6">No products added yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="text-align: right; margin-top: 20px;">
+            Grand Total: ₹<span id="saleGrandTotal">0.00</span>
+        </h3>
+
+        <button type="submit" class="add-button" id="completeSaleBtn">
+            Complete Sale
+        </button>
 
         <p id="saleMessage" role="status"></p>
     </form>
-
-    
 <!-- SALES HISTORY -->
 <div class="sales-history-section" style="margin-top: 35px;">
     <div class="section-header">
@@ -529,11 +561,12 @@
 </div>
 
 
-        <button type="button" id="refreshSalesHistoryBtn"
-                class="add-button">
-            Refresh History
-        </button>
-    </div>
+<button type="button" id="refreshSalesHistoryBtn"
+class="add-button">
+Refresh History
+</button>
+</div>
+<p id="salesHistoryMessage" role="status"></p>
 
     <div style="overflow-x: auto;">
         <table>
@@ -547,7 +580,7 @@
                 </tr>
             </thead>
 
-            <tbody id="salesHistoryTableBody">
+<tbody id="salesHistoryTableBody" style="display: none;">
                 <tr>
                     <td colspan="5">Loading sales history...</td>
                 </tr>
@@ -555,7 +588,6 @@
         </table>
     </div>
 
-    <p id="salesHistoryMessage" role="status"></p>
 </div>
 
 </section>
@@ -740,6 +772,9 @@ addProductBtn.addEventListener("click", () => {
     productForm.reset();
     productMessage.textContent = "";
     productModalTitle.textContent = "Add New Product";
+
+    toggleExpiryBatchFields();
+
     productModal.style.display = "flex";
 });
 
@@ -832,8 +867,7 @@ row.dataset.categoryId = String(product.categoryId ?? "");
             editButton.type = "button";
             editButton.textContent = "Edit";
             editButton.className = "add-button";
-
-           
+            
 editButton.addEventListener("click", async () => {
     try {
         const response = await fetch(
@@ -857,7 +891,7 @@ editButton.addEventListener("click", async () => {
             const deleteButton = document.createElement("button");
             deleteButton.type = "button";
             deleteButton.textContent = "Delete";
-            deleteButton.style.marginLeft = "8px";
+            deleteButton.className = "delete-product-button";
 
             deleteButton.addEventListener("click", () => {
                 deleteProduct(product.productId, product.productName);
@@ -1111,7 +1145,7 @@ async function loadGroupedProducts() {
 
 
 
-// Edit: Fill the form with the selected product
+
 function editProduct(product) {
     editingProductId = product.productId;
 
@@ -1130,31 +1164,61 @@ function editProduct(product) {
     document.getElementById("sellingPrice").value =
         product.sellingPrice ?? "";
 
-        document.getElementById("quantity").value =
-    product.quantity ?? 0;
+    document.getElementById("quantity").value =
+        product.quantity ?? 0;
 
-document.getElementById("reorderLevel").value =
-    product.reorderLevel ?? 10;
+    document.getElementById("reorderLevel").value =
+        product.reorderLevel ?? 10;
+
+    // Category set hone ke baad Edit mode ke hisaab se fields update karo.
+    toggleExpiryBatchFields();
 
     productMessage.textContent = "";
     productModalTitle.textContent = "Update Product";
     productModal.style.display = "flex";
 }
 
+
 // Add or Update product
 productForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-   const product = {
-    productName: document.getElementById("productName").value.trim(),
-    sku: document.getElementById("sku").value.trim(),
-    categoryId: Number(document.getElementById("categoryId").value),
-    costPrice: Number(document.getElementById("costPrice").value),
-    sellingPrice: Number(document.getElementById("sellingPrice").value),
-    quantity: Number(document.getElementById("quantity").value),
-    reorderLevel: Number(document.getElementById("reorderLevel").value)
-};
+    console.log("Product form submitted");
 
+console.log("Editing Product ID:", editingProductId);
+
+console.log(
+    "Quantity field:",
+    document.getElementById("quantity").value
+);
+
+    const categorySelect = document.getElementById("categoryId");
+    const selectedOption =
+        categorySelect.options[categorySelect.selectedIndex];
+
+    const isExpiryTracked =
+        selectedOption?.dataset.expiryTracked === "true";
+
+    const isEditing = editingProductId !== null;
+
+    // Product details
+    const product = {
+        productName: document.getElementById("productName").value.trim(),
+        sku: document.getElementById("sku").value.trim(),
+        categoryId: Number(categorySelect.value),
+        costPrice: Number(document.getElementById("costPrice").value),
+        sellingPrice: Number(document.getElementById("sellingPrice").value),
+
+        // Expiry-tracked product stock comes from its batches.
+        quantity: (isEditing || !isExpiryTracked)
+    ? Number(document.getElementById("quantity").value)
+    : 0,
+        reorderLevel: Number(
+            document.getElementById("reorderLevel").value
+        )
+    };
+
+    // Validate product
     if (
         !product.productName ||
         !product.sku ||
@@ -1163,13 +1227,50 @@ productForm.addEventListener("submit", async (event) => {
         !Number.isFinite(product.costPrice) ||
         !Number.isFinite(product.sellingPrice) ||
         product.costPrice < 0 ||
-        product.sellingPrice < 0
+        product.sellingPrice < 0 ||
+        !Number.isInteger(product.quantity) ||
+        product.quantity < 0 ||
+        !Number.isInteger(product.reorderLevel) ||
+        product.reorderLevel < 0
     ) {
-        productMessage.textContent = "Please enter valid product details.";
+        productMessage.textContent =
+            "Please enter valid product details.";
         return;
     }
 
-    const isEditing = editingProductId !== null;
+       console.log("Is editing:", isEditing);
+console.log("Editing Product ID:", editingProductId);
+console.log("Product data:", product);
+console.log("Sending update request...");
+
+    // Validate batch details when adding an expiry-tracked product.
+    // Existing batches should be edited in the Batch & Expiry panel.
+    let batch = null;
+
+    if (isExpiryTracked && !isEditing) {
+        batch = {
+            batchNumber: document.getElementById("batchNumber")
+                .value.trim(),
+
+            expiryDate: document.getElementById("expiryDate").value,
+
+            quantity: Number(
+                document.getElementById("batchQuantity").value
+            )
+        };
+
+        if (
+            !batch.batchNumber ||
+            !batch.expiryDate ||
+            !Number.isInteger(batch.quantity) ||
+            batch.quantity < 1
+        ) {
+            productMessage.textContent =
+                "Enter a valid batch number, expiry date and batch quantity.";
+            return;
+        }
+    }
+
     const url = isEditing
         ? `${API_URL}/${editingProductId}`
         : API_URL;
@@ -1179,6 +1280,7 @@ productForm.addEventListener("submit", async (event) => {
         : "Saving product...";
 
     try {
+        // Step 1: Save product
         const response = await fetch(url, {
             method: isEditing ? "PUT" : "POST",
             headers: {
@@ -1186,39 +1288,93 @@ productForm.addEventListener("submit", async (event) => {
             },
             body: JSON.stringify(product)
         });
+console.log("Update response status:", response.status);
+console.log("Update response OK:", response.ok);
+
 
         const responseText = await response.text();
 
         if (!response.ok) {
             productMessage.textContent =
-                responseText || "Request failed. HTTP " + response.status;
+                responseText || "Product save failed.";
             return;
+        }
+
+        let savedProduct;
+
+        try {
+            savedProduct = JSON.parse(responseText);
+        } catch {
+            productMessage.textContent =
+                "Product response could not be read.";
+            return;
+        }
+
+        // Step 2: Create the first batch for a new expiry-tracked product.
+        if (batch && !isEditing) {
+            const productId = savedProduct.productId;
+
+            if (!productId) {
+                productMessage.textContent =
+                    "Product saved, but its ID was not returned. Batch was not created.";
+                return;
+            }
+
+            const batchResponse = await fetch(BATCH_API, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    productId: Number(productId),
+                    batchNumber: batch.batchNumber,
+                    expiryDate: batch.expiryDate,
+                    quantity: batch.quantity
+                })
+            });
+
+            if (!batchResponse.ok) {
+                const batchError = await batchResponse.text();
+
+                productMessage.textContent =
+                    "Product saved, but batch creation failed: " +
+                    batchError;
+
+                // Refresh the product list because the product already exists.
+                await loadProducts();
+                await loadGroupedProducts();
+                await loadDashboardStats();
+
+                return;
+            }
         }
 
         productMessage.textContent = isEditing
             ? "Product updated successfully!"
-            : "Product added successfully!";
+            : "Product and batch saved successfully!";
 
+        // Refresh the UI using database data.
         await loadProducts();
         await loadGroupedProducts();
         await loadDashboardStats();
+        await loadExpiryAlertCounts();
 
         productForm.reset();
-
         editingProductId = null;
-
-        
 
         setTimeout(() => {
             productModal.style.display = "none";
             productMessage.textContent = "";
             productModalTitle.textContent = "Add New Product";
+
+            toggleExpiryBatchFields();
         }, 700);
 
     } catch (error) {
-        console.error("Save/update error:", error);
+        console.error("Product/batch save error:", error);
+
         productMessage.textContent =
-            "Could not connect to Java. Check that Spring Boot is running.";
+            "Request failed: " + error.message;
     }
 });
 
@@ -1318,27 +1474,41 @@ const expiryBatchFields = document.getElementById("expiryBatchFields");
 const quantityInput = document.getElementById("quantity");
 const quantityLabel = document.getElementById("quantityLabel");
 
+
 function toggleExpiryBatchFields() {
     const selectedOption =
         categorySelect.options[categorySelect.selectedIndex];
 
     const isExpiryTracked =
-    selectedOption?.dataset.expiryTracked === "true";
-    expiryBatchFields.style.display =
-        isExpiryTracked ? "block" : "none";
+        selectedOption?.dataset.expiryTracked === "true";
 
-    // Batch quantity will be used instead of initial quantity
-    quantityInput.required = !isExpiryTracked;
-    quantityInput.disabled = isExpiryTracked;
+    const isEditing = editingProductId !== null;
+
+    expiryBatchFields.style.display =
+        isExpiryTracked && !isEditing ? "block" : "none";
+
+    // Edit mode mein quantity hamesha editable rahegi.
+    // Expiry-tracked product ki quantity batches se synchronize hogi.
+    quantityInput.disabled = isExpiryTracked && !isEditing;
+    quantityInput.required = !isExpiryTracked || isEditing;
 
     quantityLabel.textContent = isExpiryTracked
-        ? "Initial Quantity (managed through batch)"
+        ? (isEditing
+            ? "Total Stock Quantity (all batches)"
+            : "Initial Quantity (managed through batch)")
         : "Initial Quantity";
 
-    document.getElementById("batchNumber").required = isExpiryTracked;
-    document.getElementById("expiryDate").required = isExpiryTracked;
-    document.getElementById("batchQuantity").required = isExpiryTracked;
+    // New expiry-tracked product ke liye hi batch fields required hain.
+    document.getElementById("batchNumber").required =
+        isExpiryTracked && !isEditing;
+
+    document.getElementById("expiryDate").required =
+        isExpiryTracked && !isEditing;
+
+    document.getElementById("batchQuantity").required =
+        isExpiryTracked && !isEditing;
 }
+
 
 categorySelect.addEventListener("change", toggleExpiryBatchFields);
 
@@ -1501,11 +1671,12 @@ async function loadCategories() {
             const deleteButton = document.createElement("button");
             deleteButton.type = "button";
             deleteButton.textContent = "Delete";
-            deleteButton.style.marginLeft = "8px";
-            deleteButton.addEventListener("click", () => {
+            deleteButton.className = "delete-category-button";
+            deleteButton.addEventListener("click", async () => {
                 deleteCategory(
                     category.categoryId,
-                    category.categoryName
+                    category.categoryName,
+                    deleteButton
                 );
             });
 
@@ -1627,34 +1798,64 @@ categoryForm.addEventListener("submit", async function (event) {
 });
 
 // Delete category
-async function deleteCategory(id, name) {
+
+async function deleteCategory(id, name, button) {
+    if (!id) {
+        alert("Category ID nahi mili. Category delete nahi hui.");
+        return;
+    }
+
     if (!confirm(`Are you sure you want to delete "${name}"?`)) {
         return;
     }
 
+    if (button) button.disabled = true;
+
     try {
+        console.log("Deleting category ID:", id);
+        console.log("Delete API:", `${CATEGORY_API}/${id}`);
+
         const response = await fetch(`${CATEGORY_API}/${id}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
         });
 
         const responseText = await response.text();
+        let data = {};
+
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+            data = { message: responseText };
+        }
 
         if (!response.ok) {
             throw new Error(
-                responseText || "Could not delete category."
+                data.message || data.error ||
+                `Category delete failed. HTTP ${response.status}`
             );
         }
 
-        categoryMessage.textContent =
-            responseText || "Category deleted successfully.";
+        alert(data.message || "Category deleted successfully.");
 
-        await loadCategories();
+        await Promise.all([
+            loadCategories(),
+            loadProductCategories(),
+            loadProducts(),
+            loadGroupedProducts(),
+            loadDashboardStats()
+        ]);
 
     } catch (error) {
-        console.error("Category delete error:", error);
-        categoryMessage.textContent = error.message;
+        console.error("Delete category error:", error);
+        alert(error.message || "Category delete nahi ho saki.");
+    } finally {
+        if (button) button.disabled = false;
     }
 }
+
 
 
 
@@ -2075,12 +2276,20 @@ batchForm.addEventListener("submit", async function (event) {
 
     const batchId = document.getElementById("batchId").value;
 
-    const batch = {
-        productId: Number(document.getElementById("batchProductId").value),
-        batchNumber: document.getElementById("batchNumber").value.trim(),
-        expiryDate: document.getElementById("batchExpiryDate").value || null,
-        quantity: Number(document.getElementById("batchQuantity").value)
-    };
+   
+const batch = {
+    productId: Number(
+        document.getElementById("batchProductId").value
+    ),
+    batchNumber: document
+        .getElementById("productBatchNumber").value.trim(),
+    expiryDate:
+        document.getElementById("batchExpiryDate").value || null,
+    quantity: Number(
+        document.getElementById("productBatchQuantity").value
+    )
+};
+
 
     if (
         !batch.productId ||
@@ -2117,7 +2326,12 @@ batchForm.addEventListener("submit", async function (event) {
         document.getElementById("saveBatchBtn").textContent = "Save Batch";
 
         closeBatchModalWindow();
-        await loadBatches();
+
+await loadBatches();
+await loadProducts();
+await loadGroupedProducts();
+await loadDashboardStats();
+await loadExpiryAlertCounts();
 
     } catch (error) {
         console.error("Batch save error:", error);
@@ -2130,15 +2344,21 @@ batchForm.addEventListener("submit", async function (event) {
    EDIT BATCH
 ========================= */
 
+
 function editBatch(batch) {
     document.getElementById("batchId").value = batch.batchId;
     document.getElementById("batchProductId").value = batch.productId;
-    document.getElementById("batchNumber").value = batch.batchNumber;
-    document.getElementById("batchExpiryDate").value = batch.expiryDate || "";
-    document.getElementById("batchQuantity").value = batch.quantity;
+    document.getElementById("productBatchNumber").value =
+        batch.batchNumber || "";
+    document.getElementById("batchExpiryDate").value =
+        batch.expiryDate || "";
+    document.getElementById("productBatchQuantity").value =
+        batch.quantity ?? 0;
 
-    document.getElementById("batchModalTitle").textContent = "Edit Batch";
-    document.getElementById("saveBatchBtn").textContent = "Update Batch";
+    document.getElementById("batchModalTitle").textContent =
+        "Edit Batch";
+    document.getElementById("saveBatchBtn").textContent =
+        "Update Batch";
 
     openBatchModal();
 }
@@ -2162,9 +2382,13 @@ async function deleteBatch(batchId) {
             throw new Error("Could not delete batch.");
         }
 
-        alert("Batch deleted successfully!");
-        await loadBatches();
+       alert("Batch deleted successfully!");
 
+await loadBatches();
+await loadProducts();
+await loadGroupedProducts();
+await loadDashboardStats();
+await loadExpiryAlertCounts();
     } catch (error) {
         console.error("Batch delete error:", error);
         alert("Batch delete failed: " + error.message);
@@ -2260,41 +2484,167 @@ salesNav.addEventListener("click", function(event) {
 
 
 
+
 /* =========================
-   SALES FORM SUBMIT
+   MULTI-PRODUCT SALES BILL
 ========================= */
 
 const salesForm = document.getElementById("salesForm");
+const saleProductIdInput = document.getElementById("saleProductId");
+const saleQuantityInput = document.getElementById("saleQuantity");
+const addSaleItemBtn = document.getElementById("addSaleItemBtn");
+const saleItemsBody = document.getElementById("saleItemsBody");
+const saleGrandTotal = document.getElementById("saleGrandTotal");
+const saleMessage = document.getElementById("saleMessage");
+const completeSaleBtn = document.getElementById("completeSaleBtn");
 
-salesForm.addEventListener("submit", async function(event) {
-    event.preventDefault();
+// Product ID -> { productId, quantity, productName, unitPrice }
+const saleCart = new Map();
 
-    const productId = Number(
-        document.getElementById("saleProductId").value
+function money(value) {
+    return Number(value).toFixed(2);
+}
+
+async function fetchSaleProduct(productId) {
+    const response = await fetch(
+        `http://localhost:8080/api/products/${productId}`
     );
 
-    const quantity = Number(
-        document.getElementById("saleQuantity").value
-    );
+    if (!response.ok) {
+        throw new Error(`Product ID ${productId} not found.`);
+    }
 
-    const saleMessage = document.getElementById("saleMessage");
+    return await response.json();
+}
+
+function renderSaleCart() {
+    saleItemsBody.replaceChildren();
+
+    if (saleCart.size === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+
+        cell.colSpan = 6;
+        cell.textContent = "No products added yet.";
+        row.appendChild(cell);
+        saleItemsBody.appendChild(row);
+
+        saleGrandTotal.textContent = "0.00";
+        return;
+    }
+
+    let grandTotal = 0;
+
+    for (const item of saleCart.values()) {
+        const subtotal = item.quantity * item.unitPrice;
+        grandTotal += subtotal;
+
+        const row = document.createElement("tr");
+
+        const values = [
+            item.productId,
+            item.productName,
+            item.quantity,
+            "₹" + money(item.unitPrice),
+            "₹" + money(subtotal)
+        ];
+
+        values.forEach(value => {
+            const cell = document.createElement("td");
+            cell.textContent = String(value);
+            row.appendChild(cell);
+        });
+
+        const actionCell = document.createElement("td");
+        const removeBtn = document.createElement("button");
+
+        removeBtn.type = "button";
+        removeBtn.textContent = "Remove";
+        removeBtn.className = "delete-button";
+
+        removeBtn.addEventListener("click", () => {
+            saleCart.delete(item.productId);
+            saleMessage.textContent = "";
+            renderSaleCart();
+        });
+
+        actionCell.appendChild(removeBtn);
+        row.appendChild(actionCell);
+        saleItemsBody.appendChild(row);
+    }
+
+    saleGrandTotal.textContent = money(grandTotal);
+}
+
+addSaleItemBtn.addEventListener("click", async () => {
+    const productId = Number(saleProductIdInput.value);
+    const quantity = Number(saleQuantityInput.value);
 
     if (
         !Number.isInteger(productId) || productId <= 0 ||
         !Number.isInteger(quantity) || quantity <= 0
     ) {
         saleMessage.textContent =
-            "Please enter a valid Product ID and quantity.";
+            "Enter a valid Product ID and positive quantity.";
         return;
     }
 
+    addSaleItemBtn.disabled = true;
+    saleMessage.textContent = "Checking product...";
+
+    try {
+        const product = await fetchSaleProduct(productId);
+        const existing = saleCart.get(productId);
+
+        const combinedQuantity =
+            quantity + (existing ? existing.quantity : 0);
+
+        saleCart.set(productId, {
+            productId,
+            quantity: combinedQuantity,
+            productName: product.productName || `Product ${productId}`,
+            unitPrice: Number(product.sellingPrice)
+        });
+
+        renderSaleCart();
+
+        saleMessage.textContent =
+            `Product ${productId} added to the bill.`;
+
+        saleProductIdInput.value = "";
+        saleQuantityInput.value = "";
+        saleProductIdInput.focus();
+
+    } catch (error) {
+        saleMessage.textContent = error.message;
+    } finally {
+        addSaleItemBtn.disabled = false;
+    }
+});
+
+salesForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (saleCart.size === 0) {
+        saleMessage.textContent =
+            "Please add at least one product to the bill.";
+        return;
+    }
+
+    const items = Array.from(saleCart.values()).map(item => ({
+        productId: item.productId,
+        quantity: item.quantity
+    }));
+
     if (!confirm(
-        "This will record a real sale and reduce stock. Continue?"
+        `Complete sale for ${items.length} product(s), total ₹${saleGrandTotal.textContent}?`
     )) {
         return;
     }
 
-    saleMessage.textContent = "Processing sale...";
+    completeSaleBtn.disabled = true;
+    addSaleItemBtn.disabled = true;
+    saleMessage.textContent = "Processing bill...";
 
     try {
         const response = await fetch(
@@ -2304,10 +2654,7 @@ salesForm.addEventListener("submit", async function(event) {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({
-                    productId: productId,
-                    quantity: quantity
-                })
+                body: JSON.stringify({ items })
             }
         );
 
@@ -2315,33 +2662,34 @@ salesForm.addEventListener("submit", async function(event) {
 
         if (!response.ok) {
             throw new Error(
-                data.message || "Could not record the sale."
+                data.error || data.message || "Could not complete sale."
             );
         }
 
         saleMessage.textContent =
-            "Sale successful! Sale ID: " + data.saleId +
-            " | Quantity sold: " + data.quantitySold +
-            " | Total: ₹" + data.totalAmount +
-            " | Remaining stock: " + data.remainingStock;
+            `Sale successful! Bill ID: ${data.saleId} | Total: ₹${money(data.totalAmount)}`;
 
+        saleCart.clear();
+        renderSaleCart();
         salesForm.reset();
 
-        // Refresh product data if these functions exist
         if (typeof loadProducts === "function") {
             await loadProducts();
         }
 
     } catch (error) {
         console.error("Sales error:", error);
-        saleMessage.textContent =
-            "Sale failed: " + error.message;
+        saleMessage.textContent = "Sale failed: " + error.message;
+    } finally {
+        completeSaleBtn.disabled = false;
+        addSaleItemBtn.disabled = false;
     }
 });
 
 
+
 /* =========================
-   LOAD SALES HISTORY
+   LOAD MULTI-PRODUCT SALES HISTORY
 ========================= */
 
 const salesHistoryTableBody =
@@ -2350,67 +2698,25 @@ const salesHistoryTableBody =
 const salesHistoryMessage =
     document.getElementById("salesHistoryMessage");
 
-async function loadSalesHistory() {
-    salesHistoryTableBody.innerHTML =
-        '<tr><td colspan="5">Loading sales history...</td></tr>';
+const salesHistoryDate =
+    document.getElementById("salesHistoryDate");
 
-    salesHistoryMessage.textContent = "";
+const dailySalesCount =
+    document.getElementById("dailySalesCount");
 
-    try {
-        const response = await fetch(
-            "http://localhost:8080/api/sales/history"
-        );
-
-        if (!response.ok) {
-            throw new Error("Could not load sales history.");
-        }
-
-        const sales = await response.json();
-
-        salesHistoryTableBody.innerHTML = "";
-
-        if (!Array.isArray(sales) || sales.length === 0) {
-            salesHistoryTableBody.innerHTML =
-                '<tr><td colspan="5">No sales recorded yet.</td></tr>';
-            return;
-        }
-
-        sales.forEach(sale => {
-            const row = document.createElement("tr");
-
-            const values = [
-                sale.saleId,
-                sale.productName,
-                sale.quantitySold,
-                "₹" + Number(sale.sellingPrice).toLocaleString("en-IN"),
-                "₹" + Number(sale.totalAmount).toLocaleString("en-IN")
-            ];
-
-            values.forEach(value => {
-                const cell = document.createElement("td");
-                cell.textContent = value ?? "";
-                row.appendChild(cell);
-            });
-
-            salesHistoryTableBody.appendChild(row);
-        });
-
-    } catch (error) {
-        console.error("Sales history error:", error);
-
-        salesHistoryTableBody.innerHTML =
-            '<tr><td colspan="5">Unable to load sales history.</td></tr>';
-
-        salesHistoryMessage.textContent = error.message;
-    }
-}
-
+const dailySalesRevenue =
+    document.getElementById("dailySalesRevenue");
 
 async function loadSalesHistory(date = "") {
-    salesHistoryTableBody.innerHTML =
-        '<tr><td colspan="5">Loading sales history...</td></tr>';
-
+    salesHistoryTableBody.replaceChildren();
     salesHistoryMessage.textContent = "";
+
+    const loadingRow = document.createElement("tr");
+    const loadingCell = document.createElement("td");
+    loadingCell.colSpan = 5;
+    loadingCell.textContent = "Loading sales history...";
+    loadingRow.appendChild(loadingCell);
+    salesHistoryTableBody.appendChild(loadingRow);
 
     try {
         const url = date
@@ -2426,44 +2732,65 @@ async function loadSalesHistory(date = "") {
 
         const sales = await response.json();
 
-        salesHistoryTableBody.innerHTML = "";
+        salesHistoryTableBody.replaceChildren();
 
         if (!Array.isArray(sales) || sales.length === 0) {
-            salesHistoryTableBody.innerHTML =
-                '<tr><td colspan="5">No sales found for this date.</td></tr>';
-        } else {
-            sales.forEach(sale => {
-                const row = document.createElement("tr");
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = 5;
+            cell.textContent = "No sales found.";
+            row.appendChild(cell);
+            salesHistoryTableBody.appendChild(row);
 
-                const values = [
-                    sale.saleId,
-                    sale.productName,
-                    sale.quantitySold,
-                    "₹" + Number(sale.sellingPrice).toLocaleString("en-IN"),
-                    "₹" + Number(sale.totalAmount).toLocaleString("en-IN")
-                ];
-
-                values.forEach(value => {
-                    const cell = document.createElement("td");
-                    cell.textContent = value ?? "";
-                    row.appendChild(cell);
-                });
-
-                salesHistoryTableBody.appendChild(row);
-            });
+            dailySalesCount.textContent = "0";
+            dailySalesRevenue.textContent = "₹0.00";
+            return;
         }
 
-        // Calculate daily sales count and revenue
-        document.getElementById("dailySalesCount").textContent =
-            sales.length;
+        let revenue = 0;
 
-        const dailyRevenue = sales.reduce(
-            (total, sale) => total + Number(sale.totalAmount || 0),
-            0
+        sales.forEach(sale => {
+            const row = document.createElement("tr");
+
+            const quantity = Number(sale.quantitySold || 0);
+            const price = Number(sale.sellingPrice || 0);
+            const lineTotal = Number(sale.totalAmount || quantity * price);
+
+            revenue += lineTotal;
+
+            const values = [
+                sale.saleId,
+                sale.productName,
+                quantity,
+                "₹" + price.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }),
+                "₹" + lineTotal.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })
+            ];
+
+            values.forEach(value => {
+                const cell = document.createElement("td");
+                cell.textContent = String(value ?? "");
+                row.appendChild(cell);
+            });
+
+            salesHistoryTableBody.appendChild(row);
+        });
+
+        // Multi-product bills have one history row per sold product.
+        // Count distinct bills, not individual product rows.
+        const uniqueSaleIds = new Set(
+            sales.map(sale => sale.saleId)
         );
 
-        document.getElementById("dailySalesRevenue").textContent =
-            "₹" + dailyRevenue.toLocaleString("en-IN", {
+        dailySalesCount.textContent = uniqueSaleIds.size;
+
+        dailySalesRevenue.textContent =
+            "₹" + revenue.toLocaleString("en-IN", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
@@ -2471,17 +2798,21 @@ async function loadSalesHistory(date = "") {
     } catch (error) {
         console.error("Sales history error:", error);
 
-        salesHistoryTableBody.innerHTML =
-            '<tr><td colspan="5">Unable to load sales history.</td></tr>';
+        salesHistoryTableBody.replaceChildren();
+
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 5;
+        cell.textContent = "Unable to load sales history.";
+        row.appendChild(cell);
+        salesHistoryTableBody.appendChild(row);
 
         salesHistoryMessage.textContent = error.message;
     }
 }
 
-const salesHistoryDate = document.getElementById("salesHistoryDate");
-
 document.getElementById("viewDailySalesBtn")
-    .addEventListener("click", function() {
+    .addEventListener("click", function () {
         if (!salesHistoryDate.value) {
             salesHistoryMessage.textContent =
                 "Please select a date first.";
@@ -2491,24 +2822,22 @@ document.getElementById("viewDailySalesBtn")
         loadSalesHistory(salesHistoryDate.value);
     });
 
-document.getElementById("showAllSalesBtn")
-    .addEventListener("click", function() {
-        salesHistoryDate.value = "";
-        loadSalesHistory();
-    });
+document.getElementById("showAllSalesBtn").addEventListener("click", () => {
+    document.getElementById("salesHistoryDate").value = "";
+
+    document.getElementById("salesHistoryTableBody").style.display = "";
+    loadSalesHistory();
+});
 
 document.getElementById("refreshSalesHistoryBtn")
-    .addEventListener("click", function() {
+    .addEventListener("click", function () {
         loadSalesHistory(salesHistoryDate.value);
     });
 
-
-/* Refresh button */
-document.getElementById("refreshSalesHistoryBtn")
-    .addEventListener("click", loadSalesHistory);
-
-/* Load history when Sales panel opens */
-salesNav.addEventListener("click", loadSalesHistory);
+// Load history when the Sales panel opens.
+salesNav.addEventListener("click", function () {
+    loadSalesHistory(salesHistoryDate.value);
+});
 
 
 
