@@ -23,6 +23,7 @@ The application separates its functionality into components for products, catego
 
 The goal is to simplify stock management, keep inventory records organized, and help identify products that may need replenishment.
 
+
 ## 3. Project Structure
 
 The main application is located inside the `stockwise` subfolder.
@@ -47,14 +48,26 @@ JavaProject/
             │   │   ├── config/
             │   │   ├── inventory/
             │   │   └── product/
-            │   └── resources/
+		    └── suppliers/
+            │   	└── resources/
             │       ├── application.properties
             │       ├── static/
             │       └── templates/
             └── test/
 
 
-### Main Components
+### 4. Architecture
+Browser UI (HTML/CSS/JavaScript)
+              |
+          HTTP / JSON
+              |
+     Spring Boot REST APIs
+              |
+        JPA / JDBC
+              |
+         MySQL Database
+
+### 5. Main Components
 
 - **auth/** — user model, repository, authentication controller, and security configuration.
 - **batch/** — product batch management.
@@ -66,7 +79,7 @@ JavaProject/
 - **application.properties** — application, database, and email configuration.
 - **pom.xml** — Maven dependencies and build configuration.
 
-## 4. Features
+## 6. Features
 
 - **Product Management:** Components for working with product records.
 - **Category Management:** Organize products by category.
@@ -81,7 +94,7 @@ JavaProject/
 
 The exact behavior of each feature depends on its implementation and configuration.
 
-## 5. How to Run the Project
+## 7. How to Run the Project
 
 ### Prerequisites
 
@@ -160,7 +173,7 @@ After the application starts, its local base URL is:
 
 The available API endpoints depend on the controller mappings in the source code.
 
-## Technologies Used
+## 8. Technologies Used
 
 - Java 21
 - Spring Boot
@@ -173,6 +186,45 @@ The available API endpoints depend on the controller mappings in the source code
 - Spring Mail
 - Git and GitHub
 
+### 9. API Endpoints
+Base URL: http://localhost:8080
+  Method                  Endpoint                         Purpose
+  POST                    /api/auth/signup               Create account
+
+  POST                    /api/auth/login                Log in
+
+  GET                     /api/auth/me                   Check session
+
+  POST                    /api/auth/logout               Log out
+
+  GET/POST                /api/products                  List/create products
+
+  GET/PUT/DELETE          /api/products/{id}             View/update/delete
+                                                           product
+
+  GET/POST                /api/categories                List/create categories
+
+  GET/PUT/DELETE          /api/categories/{id}           View/update/delete
+                                                           category
+
+  GET/POST                /api/suppliers                 List/create suppliers
+
+  GET/PUT/DELETE          /api/suppliers/{id}            View/update/delete
+                                                           supplier
+
+  GET                     /api/inventory/low-stock       View low-stock items
+
+  GET                     /api/batches                   List batches
+
+  GET                     /api/batches/expiry-alerts     View expiry alerts
+
+  GET/POST                /api/sales/history and         View history / record
+                          /api/sales                     sale
+
+  GET                     /api/reorder/recommendations   Get reorder suggestions
+
+  GET                     /api/inventory/test-email      Test low-stock email
+  POST			  /api/test-email/expiry	 Test expiry email
 
 ## Author
 
