@@ -1471,3 +1471,343 @@ button.delete-button:hover {
             cursor: wait;
             opacity: 0.65;
         }
+
+
+        /* =========================
+   SUPPLIER MANAGEMENT
+========================= */
+
+.supplier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.supplier-header h2 {
+    margin: 0 0 6px;
+    color: #153d32;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.supplier-header p {
+    margin: 0;
+    color: #718078;
+    font-size: 14px;
+}
+
+.supplier-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 18px;
+}
+
+#supplierSearch {
+    width: min(100%, 340px);
+    padding: 11px 14px;
+    border: 1px solid #dce5df;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #20352c;
+    font: inherit;
+    outline: none;
+}
+
+#supplierSearch:focus {
+    border-color: #26845f;
+    box-shadow: 0 0 0 3px rgba(38, 132, 95, 0.12);
+}
+
+#supplierTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#supplierTable th,
+#supplierTable td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #edf1ee;
+    font-size: 13px;
+}
+
+#supplierTable th {
+    background: #f4f8f5;
+    color: #315346;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+#supplierTable td {
+    color: #46564e;
+}
+
+#supplierTable tbody tr:hover {
+    background: #f8fbf8;
+}
+
+#supplierTable .delete-product-button {
+    padding: 8px 11px;
+    border: 1px solid #e8b8b2;
+    border-radius: 6px;
+    background: #fde8e7;
+    color: #a12622;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#supplierTable .delete-product-button:hover {
+    background: #a12622;
+    color: #ffffff;
+}
+
+#supplierMessage,
+#supplierFormMessage {
+    margin-top: 12px;
+    color: #315346;
+    font-size: 13px;
+}
+
+
+/* Supplier modal */
+
+.supplier-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(16, 35, 27, 0.55);
+    overflow-y: auto;
+}
+
+.supplier-modal-content {
+    width: min(100%, 620px);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 26px;
+    border: 1px solid #e4ebe6;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 20px 60px rgba(20, 50, 35, 0.2);
+}
+
+.supplier-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 24px;
+}
+
+.supplier-modal-header h2 {
+    margin: 0;
+    color: #153d32;
+    font-size: 22px;
+}
+
+.supplier-close-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: #f1f5f2;
+    color: #315346;
+    font-size: 25px;
+    cursor: pointer;
+}
+
+.supplier-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.supplier-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.supplier-form-group label {
+    color: #315346;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.supplier-form-group input,
+.supplier-form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border: 1px solid #dce5df;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #20352c;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+.supplier-form-group input:focus,
+.supplier-form-group textarea:focus {
+    border-color: #26845f;
+    box-shadow: 0 0 0 3px rgba(38, 132, 95, 0.1);
+}
+
+.supplier-full-width {
+    grid-column: 1 / -1;
+}
+
+.supplier-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.supplier-form-actions button {
+    padding: 10px 16px;
+    border: 1px solid #dce5df;
+    border-radius: 8px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#cancelSupplierBtn {
+    background: #ffffff;
+    color: #315346;
+}
+
+#saveSupplierBtn {
+    background: #176b4b;
+    border-color: #176b4b;
+    color: #ffffff;
+}
+
+#saveSupplierBtn:hover {
+    background: #10563b;
+}
+
+#saveSupplierBtn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+@media (max-width: 700px) {
+    .supplier-header {
+        align-items: flex-start;
+    }
+
+    .supplier-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .supplier-full-width {
+        grid-column: auto;
+    }
+
+    .supplier-modal-content {
+        padding: 20px;
+    }
+
+    #supplierTable th,
+    #supplierTable td {
+        padding: 10px;
+    }
+}
+
+/* Category add/edit form spacing */
+#categoryModal,
+.category-modal {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+#categoryModal .modal-content,
+.category-modal .modal-content {
+    width: min(100%, 540px);
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: auto;
+    padding: 30px;
+    border: 1px solid #e4ebe6;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 20px 60px rgba(20, 50, 35, 0.2);
+}
+
+#categoryForm,
+.category-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+#categoryForm label,
+.category-form label {
+    margin: 4px 0 -8px;
+    color: #315346;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#categoryForm input,
+#categoryForm textarea,
+#categoryForm select,
+.category-form input,
+.category-form textarea,
+.category-form select {
+    width: 100%;
+    min-height: 46px;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid #dce5df;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #20352c;
+    font: inherit;
+}
+
+#categoryForm textarea,
+.category-form textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+#categoryForm button,
+.category-form button {
+    min-height: 44px;
+    margin-top: 6px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+}
+
+@media (max-width: 700px) {
+    #categoryModal,
+    .category-modal {
+        padding: 12px;
+    }
+
+    #categoryModal .modal-content,
+    .category-modal .modal-content {
+        max-height: 92vh;
+        padding: 20px;
+    }
+
+    #categoryForm,
+    .category-form {
+        gap: 12px;
+    }
+}
